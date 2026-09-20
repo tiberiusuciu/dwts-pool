@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6f8;
+  --foreground: #121417;
+  --muted: #5c6570;
+  --surface: #ffffff;
+  --border: #e2e6eb;
+  --accent: #c41e3a;
+  --accent-hover: #a31830;
+  --accent-soft: #fce8ec;
+  --success: #0f7a4a;
+  --success-soft: #e6f6ee;
+  --gold: #9a6b0a;
+  --gold-soft: #f8efd6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-syne);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, #ffffff 0%, transparent 55%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
