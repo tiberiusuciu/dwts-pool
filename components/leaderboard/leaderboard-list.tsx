@@ -221,8 +221,15 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
               className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-background"
             >
               <RankBadge rank={entry.rank} />
-              <span className="min-w-0 flex-1 truncate font-medium">
-                {entry.displayName}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">
+                  {entry.displayName}
+                </span>
+                {entry.rootingFor ? (
+                  <span className="mt-0.5 block truncate text-xs text-muted">
+                    {t("leaderboard.rootingFor", { couple: entry.rootingFor })}
+                  </span>
+                ) : null}
               </span>
               <span className="tabular-nums text-sm font-semibold">
                 {entry.totalPoints}

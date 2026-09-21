@@ -14,7 +14,7 @@ import {
   applyResolvedTheme,
   readStoredThemePreference,
   resolveTheme,
-  THEME_STORAGE_KEY,
+  writeThemePreference,
   type ResolvedTheme,
   type ThemePreference,
 } from "@/lib/theme";
@@ -53,7 +53,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    setPreferenceState(readStoredThemePreference());
+    const pref = readStoredThemePreference();
+    setPreferenceState(pref);
+    writeThemePreference(pref);
     setReady(true);
   }, []);
 
@@ -67,11 +69,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setPreference = useCallback((next: ThemePreference) => {
     setPreferenceState(next);
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
+    writeThemePreference(next);
     applyResolvedTheme(resolveTheme(next));
   }, []);
 

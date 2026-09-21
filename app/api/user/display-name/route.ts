@@ -16,13 +16,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  const record =
+    typeof body === "object" && body !== null
+      ? (body as Record<string, unknown>)
+      : null;
+
   const displayName =
-    typeof body === "object" &&
-    body !== null &&
-    "displayName" in body &&
-    typeof (body as { displayName: unknown }).displayName === "string"
-      ? (body as { displayName: string }).displayName.trim()
-      : "";
+    typeof record?.displayName === "string" ? record.displayName.trim() : "";
 
   if (displayName.length < 2 || displayName.length > 40) {
     return NextResponse.json(
@@ -31,10 +31,42 @@ export async function POST(request: Request) {
     );
   }
 
+  let rootingForCoupleId: string | null | undefined;
+  if (record && "rootingForCoupleId" in record) {
+    const raw = record.rootingForCoupleId;
+    if (raw === null || raw === "") {
+      rootingForCoupleId = null;
+    } else if (typeof raw === "string") {
+      const couple = await prisma.couple.findUnique({
+        where: { id: raw },
+        select: { id: true },
+      });
+      if (!couple) {
+        return NextResponse.json(
+          { error: "Pick a valid couple to root for" },
+          { status: 400 },
+        );
+      }
+      rootingForCoupleId = couple.id;
+    } else {
+      return NextResponse.json(
+        { error: "Invalid rootingForCoupleId" },
+        { status: 400 },
+      );
+    }
+  }
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
-    data: { displayName },
-    select: { id: true, displayName: true },
+    data: {
+      displayName,
+      ...(rootingForCoupleId !== undefined ? { rootingForCoupleId } : {}),
+    },
+    select: {
+      id: true,
+      displayName: true,
+      rootingForCoupleId: true,
+    },
   });
 
   return NextResponse.json(user);

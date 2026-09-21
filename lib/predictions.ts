@@ -101,17 +101,27 @@ export async function getFeaturedPredictionEpisode() {
   return getPredictableEpisode();
 }
 
+const coupleOptionSelect = {
+  id: true,
+  celebrityName: true,
+  proName: true,
+  imageUrl: true,
+  proImageUrl: true,
+} as const;
+
 export async function getActiveCouples(): Promise<CoupleOption[]> {
   return prisma.couple.findMany({
     where: { status: CoupleStatus.ACTIVE },
     orderBy: { celebrityName: "asc" },
-    select: {
-      id: true,
-      celebrityName: true,
-      proName: true,
-      imageUrl: true,
-      proImageUrl: true,
-    },
+    select: coupleOptionSelect,
+  });
+}
+
+/** All couples for rooting-for (includes eliminated). */
+export async function getAllCouples(): Promise<CoupleOption[]> {
+  return prisma.couple.findMany({
+    orderBy: { celebrityName: "asc" },
+    select: coupleOptionSelect,
   });
 }
 

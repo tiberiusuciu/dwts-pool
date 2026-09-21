@@ -41,9 +41,11 @@ model User {
   image         String?
   totalPoints   Int       @default(0)
   role          Role      @default(USER)
+  rootingForCoupleId String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  rootingForCouple   Couple?  @relation("UserRootingFor", fields: [rootingForCoupleId], references: [id], onDelete: SetNull)
   accounts    Account[]
   sessions    Session[]
   predictions Prediction[]
@@ -103,6 +105,7 @@ model Couple {
   scorePredictions           Prediction[]   @relation("PredictionCouple")
   seasonWinnerPredictions    Prediction[]   @relation("SeasonWinnerCouple")
   eliminatedPredictions      Prediction[]   @relation("PredictedEliminatedCouple")
+  rootingFans                User[]         @relation("UserRootingFor")
 }
 
 model Episode {

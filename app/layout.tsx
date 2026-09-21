@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
-import Script from "next/script";
+import { cookies } from "next/headers";
 
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import {
+  isThemePreference,
+  THEME_STORAGE_KEY,
+  type ResolvedTheme,
+} from "@/lib/theme";
 
 import "./globals.css";
 
@@ -22,25 +26,41 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "DWTS Pool",
   description: "Private Dancing with the Stars prediction pool",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: ["/favicon.svg"],
+  },
 };
 
-const themeBootScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var p=localStorage.getItem(k);if(p!=="light"&&p!=="dark"&&p!=="system")p="system";var r=p==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p;var e=document.documentElement;e.dataset.theme=r;e.style.colorScheme=r;}catch(e){}})();`;
+function resolveThemeFromCookie(
+  preference: string | undefined,
+): ResolvedTheme {
+  if (preference === "light" || preference === "dark") return preference;
+  // system / missing — default dark to match prior server snapshot
+  return "dark";
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jar = await cookies();
+  const stored = jar.get(THEME_STORAGE_KEY)?.value;
+  const preference = isThemePreference(stored) ? stored : "system";
+  const resolved = resolveThemeFromCookie(
+    preference === "system" ? undefined : preference,
+  );
+
   return (
     <html
       lang="en"
+      data-theme={resolved}
+      style={{ colorScheme: resolved }}
       suppressHydrationWarning
       className={`${dmSans.variable} ${syne.variable} min-h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
-        <Script id="theme-boot" strategy="beforeInteractive">
-          {themeBootScript}
-        </Script>
         <ThemeProvider>
           <LocaleProvider>
             <AuthSessionProvider>{children}</AuthSessionProvider>

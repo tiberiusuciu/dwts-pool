@@ -269,6 +269,7 @@ export type LeaderboardEntry = {
   displayName: string;
   totalPoints: number;
   rank: number;
+  rootingFor: string | null;
   episodes: EpisodeScoreBreakdown[];
 };
 
@@ -306,7 +307,14 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const [users, episodes, couples, activeWinnerCoupleId] = await Promise.all([
     prisma.user.findMany({
       where: { displayName: { not: null } },
-      select: { id: true, displayName: true, totalPoints: true },
+      select: {
+        id: true,
+        displayName: true,
+        totalPoints: true,
+        rootingForCouple: {
+          select: { celebrityName: true, proName: true },
+        },
+      },
       orderBy: [{ totalPoints: "desc" }, { displayName: "asc" }],
     }),
     prisma.episode.findMany({
@@ -370,6 +378,9 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
       displayName: user.displayName ?? "Player",
       totalPoints: user.totalPoints,
       rank: lastRank,
+      rootingFor: user.rootingForCouple
+        ? `${user.rootingForCouple.celebrityName} & ${user.rootingForCouple.proName}`
+        : null,
       episodes: episodeBreakdowns,
     };
   });

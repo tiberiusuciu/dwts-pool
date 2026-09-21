@@ -43,3 +43,16 @@ export function applyResolvedTheme(resolved: ResolvedTheme) {
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
 }
+
+export function writeThemePreference(preference: ThemePreference) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, preference);
+  } catch {
+    /* ignore */
+  }
+  try {
+    document.cookie = `${THEME_STORAGE_KEY}=${preference};path=/;max-age=31536000;samesite=lax`;
+  } catch {
+    /* ignore */
+  }
+}
