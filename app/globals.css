@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-:root {
+:root,
+[data-theme="dark"] {
   --background: #07041a;
   --foreground: #ffe8ef;
   --muted: #c9a0c4;
@@ -15,6 +16,27 @@
   --gold-soft: color-mix(in srgb, #ffc1d1 16%, transparent);
   --glow-purple: #8b10b9;
   --glow-orchid: #c83cd3;
+  --glow-strength: 28%;
+  --glow-strength-side: 22%;
+}
+
+[data-theme="light"] {
+  --background: #f6f1fa;
+  --foreground: #1a0828;
+  --muted: #6d527c;
+  --surface: #ffffff;
+  --border: #e2d3ee;
+  --accent: #d90f86;
+  --accent-hover: #b80c72;
+  --accent-soft: color-mix(in srgb, #d90f86 12%, transparent);
+  --success: #178a56;
+  --success-soft: color-mix(in srgb, #178a56 12%, transparent);
+  --gold: #9a6b16;
+  --gold-soft: color-mix(in srgb, #9a6b16 12%, transparent);
+  --glow-purple: #c9a8e8;
+  --glow-orchid: #f0b4d8;
+  --glow-strength: 35%;
+  --glow-strength-side: 28%;
 }
 
 @theme inline {
@@ -41,17 +63,21 @@ html {
 
 body {
   min-height: 100%;
-  /* Fixed so the glow stays viewport-tied and never seams when content scrolls */
   background-color: var(--background);
   background-image:
     radial-gradient(
       ellipse 100% 70% at 50% -10%,
-      color-mix(in srgb, var(--glow-orchid) 28%, transparent) 0%,
+      color-mix(in srgb, var(--glow-orchid) var(--glow-strength), transparent) 0%,
       transparent 55%
     ),
     radial-gradient(
       ellipse 80% 50% at 100% 0%,
-      color-mix(in srgb, var(--glow-purple) 22%, transparent) 0%,
+      color-mix(
+        in srgb,
+        var(--glow-purple) var(--glow-strength-side),
+        transparent
+      )
+        0%,
       transparent 50%
     );
   background-attachment: fixed, fixed;

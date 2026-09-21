@@ -4,6 +4,7 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 
 import { DisplayNameForm } from "@/components/auth/display-name-form";
+import { ThemePicker } from "@/components/theme/theme-picker";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -21,6 +22,8 @@ export default function SettingsPage() {
             Signed in as {session?.user?.email ?? "…"}
           </p>
         </div>
+
+        <ThemePicker />
 
         {status === "loading" ? (
           <p className="text-sm text-muted">Loading…</p>

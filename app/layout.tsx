@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeScript } from "@/components/theme/theme-script";
 
 import "./globals.css";
 
@@ -28,10 +30,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${dmSans.variable} ${syne.variable} min-h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+        <ThemeScript />
+        <ThemeProvider>
+          <AuthSessionProvider>{children}</AuthSessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
