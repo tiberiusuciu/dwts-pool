@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { EpisodeDTO } from "@/lib/episodes";
 
@@ -10,14 +10,31 @@ const STATUS_LABEL: Record<EpisodeDTO["status"], string> = {
   UPCOMING: "Upcoming",
 };
 
-export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
-  const defaultId = useMemo(() => {
-    const past = [...episodes].reverse().find((e) => e.status === "PAST");
-    return past?.id ?? episodes[0]?.id ?? "";
-  }, [episodes]);
+function pickDefaultEpisodeId(episodes: EpisodeDTO[]): string {
+  const live = episodes.find((e) => e.status === "LIVE");
+  if (live) return live.id;
 
+  const lastPast = [...episodes].reverse().find((e) => e.status === "PAST");
+  if (lastPast) return lastPast.id;
+
+  const upcoming = episodes.find((e) => e.status === "UPCOMING");
+  return upcoming?.id ?? episodes[0]?.id ?? "";
+}
+
+
+export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
+  const defaultId = useMemo(() => pickDefaultEpisodeId(episodes), [episodes]);
   const [selectedId, setSelectedId] = useState(defaultId);
   const selected = episodes.find((e) => e.id === selectedId) ?? episodes[0];
+  const activeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    activeBtnRef.current?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: "auto",
+    });
+  }, [defaultId]);
 
   if (!selected) {
     return (
@@ -44,6 +61,7 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
               <button
                 key={episode.id}
                 type="button"
+                ref={active ? activeBtnRef : null}
                 onClick={() => setSelectedId(episode.id)}
                 className={`snap-start rounded-2xl border px-4 py-3 text-left transition-colors active:scale-[0.98] ${
                   active

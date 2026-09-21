@@ -8,7 +8,7 @@ import {
   defaultRankOrder,
   getActiveCouples,
   getEpisodeLockAt,
-  getPredictableEpisode,
+  getFeaturedPredictionEpisode,
   getUserPredictions,
 } from "@/lib/predictions";
 
@@ -16,16 +16,17 @@ export default async function HomePage() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [episodes, upcoming, couples] = await Promise.all([
+  const [episodes, featured, couples] = await Promise.all([
     getEpisodesWithResults(),
-    getPredictableEpisode(),
+    getFeaturedPredictionEpisode(),
     getActiveCouples(),
   ]);
 
   const name = session?.user?.displayName ?? "there";
+  const isLive = featured?.status === EpisodeStatus.LIVE;
   const predictions =
-    userId && upcoming
-      ? await getUserPredictions(userId, upcoming.id)
+    userId && featured
+      ? await getUserPredictions(userId, featured.id)
       : null;
 
   const rankOrder =
@@ -48,17 +49,19 @@ export default async function HomePage() {
         Hey, {name}
       </h1>
       <p className="mt-3 max-w-md text-muted">
-        Season 35 — rank next week&apos;s scoreboard and pick the elim before Tue
-        8pm ET.
+        {isLive
+          ? "Episode is live — your picks are locked. Sit back and watch."
+          : "Season 35 — rank next week's scoreboard and pick the elim before Tue 8pm ET."}
       </p>
 
-      {upcoming && userId ? (
+      {featured && userId ? (
         <RankPredictionBoard
-          episodeId={upcoming.id}
-          episodeTitle={upcoming.title}
-          episodeNumber={upcoming.episodeNumber}
-          lockAtIso={getEpisodeLockAt(upcoming).toISOString()}
-          forceLocked={upcoming.status !== EpisodeStatus.UPCOMING}
+          episodeId={featured.id}
+          episodeTitle={featured.title}
+          episodeNumber={featured.episodeNumber}
+          lockAtIso={getEpisodeLockAt(featured).toISOString()}
+          forceLocked={featured.status !== EpisodeStatus.UPCOMING}
+          episodeStatus={featured.status}
           couples={couples}
           initialOrder={rankOrder}
           initialEliminatedCoupleId={predictions?.eliminatedCoupleId ?? null}

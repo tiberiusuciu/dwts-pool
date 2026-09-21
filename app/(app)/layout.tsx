@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { getPrizePoolCents } from "@/lib/app-settings";
 import {
   getEpisodeLockAt,
-  getPredictableEpisode,
+  getFeaturedPredictionEpisode,
 } from "@/lib/predictions";
 import { getMyStanding } from "@/lib/scoring";
 
@@ -17,16 +17,16 @@ export default async function AppLayout({
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [standing, upcoming, prizePoolCents] = await Promise.all([
+  const [standing, featured, prizePoolCents] = await Promise.all([
     userId ? getMyStanding(userId) : null,
-    getPredictableEpisode(),
+    getFeaturedPredictionEpisode(),
     getPrizePoolCents(),
   ]);
 
-  const lockClock = upcoming
+  const lockClock = featured
     ? {
-        lockAtIso: getEpisodeLockAt(upcoming).toISOString(),
-        forceLocked: upcoming.status !== EpisodeStatus.UPCOMING,
+        lockAtIso: getEpisodeLockAt(featured).toISOString(),
+        forceLocked: featured.status !== EpisodeStatus.UPCOMING,
       }
     : null;
 

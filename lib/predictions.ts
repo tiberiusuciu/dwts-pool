@@ -115,6 +115,16 @@ export async function getPredictableEpisode() {
   });
 }
 
+/** Episode to feature on home / lock chip: LIVE night first, else next UPCOMING. */
+export async function getFeaturedPredictionEpisode() {
+  const live = await prisma.episode.findFirst({
+    where: { status: EpisodeStatus.LIVE },
+    orderBy: { episodeNumber: "asc" },
+  });
+  if (live) return live;
+  return getPredictableEpisode();
+}
+
 export async function getActiveCouples(): Promise<CoupleOption[]> {
   return prisma.couple.findMany({
     where: { status: CoupleStatus.ACTIVE },

@@ -1,5 +1,6 @@
 "use client";
 
+import { EpisodeStatus } from "@prisma/client";
 import { ChevronDown, ChevronUp, Lock } from "lucide-react";
 import {
   startTransition,
@@ -19,6 +20,7 @@ export function RankPredictionBoard({
   episodeNumber,
   lockAtIso,
   forceLocked = false,
+  episodeStatus = EpisodeStatus.UPCOMING,
   couples,
   initialOrder,
   initialEliminatedCoupleId,
@@ -30,6 +32,7 @@ export function RankPredictionBoard({
   lockAtIso: string;
   /** True when episode is no longer UPCOMING */
   forceLocked?: boolean;
+  episodeStatus?: EpisodeStatus;
   couples: CoupleOption[];
   /** couple ids highest → lowest */
   initialOrder: string[];
@@ -39,6 +42,8 @@ export function RankPredictionBoard({
     lockAtIso,
     forceLocked,
   );
+  const isLive = episodeStatus === EpisodeStatus.LIVE;
+  const statusLabel = isLive ? "Live" : locked ? "Locked" : "Upcoming";
 
   const byId = useMemo(() => {
     const map = new Map(couples.map((c) => [c.id, c]));
@@ -101,14 +106,17 @@ export function RankPredictionBoard({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-            Episode {episodeNumber} · {locked ? "Locked" : "Upcoming"}
+            Episode {episodeNumber} · {statusLabel}
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold tracking-tight">
             {episodeTitle}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Rank highest → lowest expected score, and mark your elim pick.{" "}
-            {locked ? "Voting is closed." : `Locks in ${lockLabel}.`}
+            {isLive
+              ? "Your locked rank and elim pick for tonight."
+              : locked
+                ? "Rank and elim picks are locked for this episode."
+                : `Rank highest → lowest expected score, and mark your elim pick. Locks in ${lockLabel}.`}
           </p>
         </div>
       </div>
@@ -120,10 +128,13 @@ export function RankPredictionBoard({
         >
           <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
           <div>
-            <p className="font-semibold">Predictions locked</p>
+            <p className="font-semibold">
+              {isLive ? "Episode is live" : "Predictions locked"}
+            </p>
             <p className="mt-0.5 text-accent/90">
-              Tue 8pm ET has passed (or this episode is live). Rank and elim
-              picks can no longer be changed.
+              {isLive
+                ? "Voting is closed while the show is on. Your picks below are final."
+                : "Tue 8pm ET has passed. Rank and elim picks can no longer be changed."}
             </p>
           </div>
         </div>

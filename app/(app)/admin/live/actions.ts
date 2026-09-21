@@ -154,6 +154,39 @@ export async function upsertLiveResult(input: {
   return { ok: true };
 }
 
+export async function clearEpisodeResults(
+  episodeId: string,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) {
+    return { ok: false, error: "Admin only" };
+  }
+
+  const episode = await prisma.episode.findUnique({
+    where: { id: episodeId },
+    select: { id: true },
+  });
+  if (!episode) {
+    return { ok: false, error: "Episode not found" };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.actualResult.deleteMany({ where: { episodeId } });
+    await tx.couple.updateMany({
+      where: { eliminatedEpisodeId: episodeId },
+      data: {
+        status: CoupleStatus.ACTIVE,
+        eliminatedEpisodeId: null,
+      },
+    });
+  });
+
+  await recalculateAllPoints();
+  publishLeaderboardUpdate();
+  revalidatePath("/leaderboard");
+  await broadcastEpisode(episodeId);
+  return { ok: true };
+}
+
 export async function calculateAndBroadcastPoints(): Promise<
   ActionResult & { totals?: number }
 > {

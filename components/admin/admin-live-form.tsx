@@ -2,14 +2,16 @@
 
 import { Minus, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import {
   calculateAndBroadcastPoints,
+  clearEpisodeResults,
   setEpisodeFinale,
   setEpisodeStatus,
   upsertLiveResult,
 } from "@/app/(app)/admin/live/actions";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/predictions";
 
 type EpisodeStatusValue = "PAST" | "LIVE" | "UPCOMING";
@@ -45,9 +47,14 @@ export function AdminLiveForm({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [clearOpen, setClearOpen] = useState(false);
 
   const episode = episodes.find((e) => e.id === episodeId);
   const [isFinale, setIsFinale] = useState(episode?.isFinale ?? false);
+  const hasSavedResults = useMemo(
+    () => couples.some((c) => c.judgeScore != null || c.isEliminated),
+    [couples],
+  );
 
   function onEpisodeChange(nextId: string) {
     setEpisodeId(nextId);
@@ -140,6 +147,33 @@ export function AdminLiveForm({
     });
   }
 
+  function clearResults() {
+    setClearOpen(true);
+  }
+
+  function confirmClearResults() {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await clearEpisodeResults(episodeId);
+      if (!result.ok) {
+        setError(result.error);
+        setClearOpen(false);
+        return;
+      }
+      setRows((prev) =>
+        prev.map((row) => ({
+          ...row,
+          judgeScore: null,
+          isEliminated: false,
+        })),
+      );
+      setClearOpen(false);
+      setMessage("Episode results cleared");
+      router.refresh();
+    });
+  }
+
   return (
     <div className="space-y-8">
       <section className="space-y-6">
@@ -201,16 +235,26 @@ export function AdminLiveForm({
               {episode?.status ?? "—"}
             </span>
           </p>
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              checked={isFinale}
-              disabled={pending}
-              onChange={(e) => toggleFinale(e.target.checked)}
-              className="size-4 accent-[var(--accent)]"
-            />
-            Season finale
-          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={isFinale}
+                disabled={pending}
+                onChange={(e) => toggleFinale(e.target.checked)}
+                className="size-4 accent-[var(--accent)]"
+              />
+              Season finale
+            </label>
+            <button
+              type="button"
+              disabled={pending || !hasSavedResults}
+              onClick={clearResults}
+              className="h-9 rounded-xl border border-border px-3 text-xs font-medium text-muted hover:border-accent hover:text-accent disabled:opacity-60"
+            >
+              Clear results
+            </button>
+          </div>
         </div>
 
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
@@ -284,6 +328,23 @@ export function AdminLiveForm({
 
       {error ? <p className="text-sm text-accent">{error}</p> : null}
       {message ? <p className="text-sm text-muted">{message}</p> : null}
+
+      <ConfirmModal
+        open={clearOpen}
+        title="Clear episode results?"
+        description={
+          episode
+            ? `This removes all scores and elimination flags for Ep ${episode.episodeNumber} — ${episode.title}. Couples eliminated on this episode become active again, and pool points are recalculated.`
+            : "This removes all scores and elimination flags for this episode. Couples eliminated here become active again, and pool points are recalculated."
+        }
+        confirmLabel="Clear results"
+        danger
+        pending={pending}
+        onConfirm={confirmClearResults}
+        onCancel={() => {
+          if (!pending) setClearOpen(false);
+        }}
+      />
     </div>
   );
 }
