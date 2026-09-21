@@ -67,6 +67,7 @@ export const fr = {
     elim: "Élim.",
     moveUpAria: "Monter {name}",
     moveDownAria: "Descendre {name}",
+    setRankAria: "Définir le rang de {name}",
     saving: "Enregistrement…",
     saved: "Pronostics enregistrés",
   },

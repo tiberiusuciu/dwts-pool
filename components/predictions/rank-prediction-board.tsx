@@ -170,6 +170,18 @@ export function RankPredictionBoard({
     });
   }
 
+  function moveTo(from: number, to: number) {
+    if (locked || from === to || to < 0 || to >= order.length) return;
+    startTransition(() => {
+      setOrder((prev) => {
+        const copy = [...prev];
+        const [item] = copy.splice(from, 1);
+        copy.splice(to, 0, item);
+        return copy;
+      });
+    });
+  }
+
   const statusText = locked
     ? null
     : pending || dirty
@@ -229,7 +241,27 @@ export function RankPredictionBoard({
                   isElimPick ? "bg-accent-soft" : ""
                 }`}
               >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold tabular-nums text-muted">
+                {!locked ? (
+                  <select
+                    value={index}
+                    aria-label={t("ranks.setRankAria", {
+                      name: couple.celebrityName,
+                    })}
+                    onChange={(e) => moveTo(index, Number(e.target.value))}
+                    className="flex size-8 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border-0 bg-background text-center text-sm font-semibold tabular-nums text-muted md:hidden"
+                  >
+                    {order.map((_, i) => (
+                      <option key={i} value={i}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold tabular-nums text-muted ${
+                    locked ? "" : "hidden md:flex"
+                  }`}
+                >
                   {index + 1}
                 </span>
                 <CoupleAvatar
@@ -262,7 +294,7 @@ export function RankPredictionBoard({
                   {t("ranks.elim")}
                 </label>
                 {!locked ? (
-                  <div className="flex shrink-0 gap-1">
+                  <div className="hidden shrink-0 gap-1 md:flex">
                     <button
                       type="button"
                       aria-label={t("ranks.moveUpAria", {

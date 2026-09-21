@@ -64,6 +64,7 @@ export const en = {
     elim: "Elim",
     moveUpAria: "Move {name} up",
     moveDownAria: "Move {name} down",
+    setRankAria: "Set rank for {name}",
     saving: "Saving…",
     saved: "Predictions saved",
   },
