@@ -1,6 +1,6 @@
 import { Banknote } from "lucide-react";
 
-import { formatPrizePool } from "@/lib/app-settings";
+import { formatPrizePool } from "@/lib/prize-pool";
 
 export function PrizePoolChip({ cents }: { cents: number }) {
   const label = formatPrizePool(cents);

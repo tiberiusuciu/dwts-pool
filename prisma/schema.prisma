@@ -48,6 +48,7 @@ model User {
   sessions    Session[]
   predictions Prediction[]
   predictionEvents PredictionEvent[]
+  prizeContributions PrizeContribution[]
 }
 
 model Account {
@@ -180,7 +181,25 @@ model PredictionEvent {
 /** Singleton app-wide settings (id is always "default"). */
 model AppSettings {
   id             String   @id @default("default")
-  /** Prize pool total in CAD cents. */
+  /** Prize pool total in CAD cents (kept in sync with PrizeContribution sum). */
   prizePoolCents Int      @default(0)
   updatedAt      DateTime @default(now()) @updatedAt
+}
+
+/** Who put money into the prize pool (player or outside guest). */
+model PrizeContribution {
+  id          String   @id @default(cuid())
+  /** Amount in CAD cents. */
+  amountCents Int
+  /** Linked pool player, if any. */
+  userId      String?
+  /** Free-form name when the contributor is not a pool user. */
+  guestName   String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
 }

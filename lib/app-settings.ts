@@ -1,64 +1,82 @@
+import "server-only";
+
 import { prisma } from "@/lib/prisma";
+import type { PrizeContributionRow } from "@/lib/prize-pool";
 
 export const APP_SETTINGS_ID = "default";
 
-type AppSettingsRow = {
-  id: string;
-  prizePoolCents: number;
-  updatedAt: Date;
-};
+export {
+  formatPrizePool,
+  parseDollarAmount,
+  contributorLabel,
+  type PrizeContributionRow,
+} from "@/lib/prize-pool";
 
-type AppSettingsClient = {
-  upsert: (args: {
-    where: { id: string };
-    create: { id: string; prizePoolCents: number };
-    update: { prizePoolCents?: number };
-  }) => Promise<AppSettingsRow>;
-};
-
-export function formatPrizePool(cents: number): string {
-  const dollars = cents / 100;
-  return new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency: "CAD",
-    maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  }).format(dollars);
-}
-
-function getSettingsClient(): AppSettingsClient {
-  const client = (prisma as unknown as { appSettings?: AppSettingsClient })
-    .appSettings;
-  if (!client) {
-    throw new Error(
-      "Prisma client is missing AppSettings. Run: pnpm exec prisma generate && pnpm exec prisma migrate deploy",
-    );
-  }
-  return client;
-}
-
-export async function getAppSettings(): Promise<AppSettingsRow> {
-  return getSettingsClient().upsert({
-    where: { id: APP_SETTINGS_ID },
-    create: { id: APP_SETTINGS_ID, prizePoolCents: 0 },
-    update: {},
+async function syncPrizePoolTotal() {
+  const aggregate = await prisma.prizeContribution.aggregate({
+    _sum: { amountCents: true },
   });
+  const prizePoolCents = aggregate._sum.amountCents ?? 0;
+  await prisma.appSettings.upsert({
+    where: { id: APP_SETTINGS_ID },
+    create: { id: APP_SETTINGS_ID, prizePoolCents },
+    update: { prizePoolCents },
+  });
+  return prizePoolCents;
 }
 
 export async function getPrizePoolCents(): Promise<number> {
   try {
-    const settings = await getAppSettings();
+    const settings = await prisma.appSettings.upsert({
+      where: { id: APP_SETTINGS_ID },
+      create: { id: APP_SETTINGS_ID, prizePoolCents: 0 },
+      update: {},
+    });
     return settings.prizePoolCents;
   } catch {
     return 0;
   }
 }
 
-export async function setPrizePoolCents(
-  prizePoolCents: number,
-): Promise<AppSettingsRow> {
-  return getSettingsClient().upsert({
-    where: { id: APP_SETTINGS_ID },
-    create: { id: APP_SETTINGS_ID, prizePoolCents },
-    update: { prizePoolCents },
+export async function listPrizeContributions(): Promise<PrizeContributionRow[]> {
+  const rows = await prisma.prizeContribution.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, displayName: true, email: true } },
+    },
+  });
+  return rows.map((row) => ({
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
+export async function addPrizeContribution(input: {
+  amountCents: number;
+  userId?: string | null;
+  guestName?: string | null;
+  note?: string | null;
+}): Promise<number> {
+  await prisma.prizeContribution.create({
+    data: {
+      amountCents: input.amountCents,
+      userId: input.userId || null,
+      guestName: input.guestName?.trim() || null,
+      note: input.note?.trim() || null,
+    },
+  });
+  return syncPrizePoolTotal();
+}
+
+export async function removePrizeContribution(id: string): Promise<number> {
+  await prisma.prizeContribution.delete({ where: { id } });
+  return syncPrizePoolTotal();
+}
+
+export async function listPoolPlayers() {
+  return prisma.user.findMany({
+    where: { displayName: { not: null } },
+    orderBy: { displayName: "asc" },
+    select: { id: true, displayName: true, email: true },
   });
 }

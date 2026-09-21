@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AdminLiveForm } from "@/components/admin/admin-live-form";
 import { PrizePoolForm } from "@/components/admin/prize-pool-form";
-import { getPrizePoolCents } from "@/lib/app-settings";
+import {
+  getPrizePoolCents,
+  listPoolPlayers,
+  listPrizeContributions,
+} from "@/lib/app-settings";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +24,7 @@ export default async function AdminPage({
   }
 
   const params = await searchParams;
-  const [episodes, prizePoolCents] = await Promise.all([
+  const [episodes, prizePoolCents, players, contributions] = await Promise.all([
     prisma.episode.findMany({
       orderBy: { episodeNumber: "asc" },
       select: {
@@ -32,7 +36,17 @@ export default async function AdminPage({
       },
     }),
     getPrizePoolCents(),
+    listPoolPlayers(),
+    listPrizeContributions(),
   ]);
+
+  const prizeSection = (
+    <PrizePoolForm
+      initialCents={prizePoolCents}
+      players={players}
+      contributions={contributions}
+    />
+  );
 
   if (episodes.length === 0) {
     return (
@@ -41,7 +55,7 @@ export default async function AdminPage({
           <h1 className="font-display text-2xl font-semibold">Host admin</h1>
           <p className="mt-2 text-sm text-muted">No episodes seeded yet.</p>
         </div>
-        <PrizePoolForm initialCents={prizePoolCents} />
+        {prizeSection}
       </div>
     );
   }
@@ -74,7 +88,7 @@ export default async function AdminPage({
         </p>
       </div>
 
-      <PrizePoolForm initialCents={prizePoolCents} />
+      {prizeSection}
 
       <AdminLiveForm
         key={selectedId}

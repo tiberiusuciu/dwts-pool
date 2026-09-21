@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
+import Script from "next/script";
 
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -35,10 +36,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${dmSans.variable} ${syne.variable} min-h-full antialiased`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-      </head>
       <body className="flex min-h-full flex-col font-sans">
+        <Script id="theme-boot" strategy="beforeInteractive">
+          {themeBootScript}
+        </Script>
         <ThemeProvider>
           <AuthSessionProvider>{children}</AuthSessionProvider>
         </ThemeProvider>
