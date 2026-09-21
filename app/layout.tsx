@@ -7,6 +7,7 @@ import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import {
   isThemePreference,
+  THEME_CHROME,
   THEME_STORAGE_KEY,
   type ResolvedTheme,
 } from "@/lib/theme";
@@ -42,22 +43,28 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#07041a" },
-    { media: "(prefers-color-scheme: light)", color: "#f6f1fa" },
-  ],
-};
-
 function resolveThemeFromCookie(
   preference: string | undefined,
 ): ResolvedTheme {
   if (preference === "light" || preference === "dark") return preference;
   // system / missing — default dark to match prior server snapshot
   return "dark";
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const jar = await cookies();
+  const stored = jar.get(THEME_STORAGE_KEY)?.value;
+  const preference = isThemePreference(stored) ? stored : "system";
+  const resolved = resolveThemeFromCookie(
+    preference === "system" ? undefined : preference,
+  );
+
+  return {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+    themeColor: THEME_CHROME[resolved],
+  };
 }
 
 export default async function RootLayout({

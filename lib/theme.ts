@@ -3,6 +3,12 @@ export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "dwts-theme";
 
+/** Browser chrome / status bar colors (match header surface). */
+export const THEME_CHROME: Record<ResolvedTheme, string> = {
+  dark: "#160b36",
+  light: "#ffffff",
+};
+
 export const THEME_OPTIONS: {
   value: ThemePreference;
   label: string;
@@ -39,9 +45,22 @@ export function readStoredThemePreference(): ThemePreference {
   return "system";
 }
 
+function syncThemeColorMeta(resolved: ResolvedTheme) {
+  if (typeof document === "undefined") return;
+  const color = THEME_CHROME[resolved];
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", color);
+}
+
 export function applyResolvedTheme(resolved: ResolvedTheme) {
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
+  syncThemeColorMeta(resolved);
 }
 
 export function writeThemePreference(preference: ThemePreference) {
