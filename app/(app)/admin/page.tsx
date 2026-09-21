@@ -64,13 +64,25 @@ export default async function AdminPage({
     params.episodeId && episodes.some((e) => e.id === params.episodeId)
       ? params.episodeId
       : (live?.id ?? upcoming?.id ?? episodes[episodes.length - 1].id);
+  const selected = episodes.find((e) => e.id === selectedId)!;
 
   const results = await prisma.actualResult.findMany({
     where: { episodeId: selectedId },
   });
   const resultByCouple = new Map(results.map((r) => [r.coupleId, r]));
 
+  // Still dancing as of this episode: never eliminated, or eliminated this week or later.
   const couples = await prisma.couple.findMany({
+    where: {
+      OR: [
+        { eliminatedEpisodeId: null },
+        {
+          eliminatedEpisode: {
+            episodeNumber: { gte: selected.episodeNumber },
+          },
+        },
+      ],
+    },
     orderBy: { celebrityName: "asc" },
     select: {
       id: true,
