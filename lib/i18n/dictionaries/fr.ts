@@ -215,6 +215,8 @@ export const fr = {
     calculateCta: "Calculer les points et diffuser",
     working: "Traitement…",
     savedCouple: "{name} enregistré",
+    scoreSaved: "Note enregistrée",
+    scorePending: "Pas encore noté",
     markedStatus: "Épisode marqué {status}",
     markedFinale: "Marqué comme finale de saison",
     finaleCleared: "Indicateur de finale retiré",

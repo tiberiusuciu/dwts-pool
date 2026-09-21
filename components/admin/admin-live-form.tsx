@@ -25,6 +25,8 @@ type CoupleRow = {
   imageUrl: string | null;
   proImageUrl: string | null;
   judgeScore: number | null;
+  /** Last score persisted for this episode; null = not scored yet. */
+  savedScore: number | null;
   isEliminated: boolean;
 };
 
@@ -103,6 +105,14 @@ export function AdminLiveForm({
         setError(result.error);
         return;
       }
+      const saved = row.judgeScore ?? SCORE_DEFAULT;
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === coupleId
+            ? { ...r, judgeScore: saved, savedScore: saved }
+            : r,
+        ),
+      );
       setMessage(t("admin.savedCouple", { name: row.celebrityName }));
       router.refresh();
     });
@@ -172,6 +182,7 @@ export function AdminLiveForm({
         prev.map((row) => ({
           ...row,
           judgeScore: null,
+          savedScore: null,
           isEliminated: false,
         })),
       );
@@ -280,6 +291,20 @@ export function AdminLiveForm({
               className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center"
             >
               <div className="flex min-w-0 flex-1 items-center gap-3">
+                <span
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${
+                    row.savedScore != null
+                      ? "bg-accent-soft text-accent"
+                      : "bg-background text-muted"
+                  }`}
+                  title={
+                    row.savedScore != null
+                      ? t("admin.scoreSaved")
+                      : t("admin.scorePending")
+                  }
+                >
+                  {row.savedScore ?? "—"}
+                </span>
                 <CoupleAvatar
                   celebrityName={row.celebrityName}
                   proName={row.proName}

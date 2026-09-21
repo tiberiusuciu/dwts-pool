@@ -112,6 +112,7 @@ export default async function AdminPage({
             imageUrl: c.imageUrl,
             proImageUrl: c.proImageUrl,
             judgeScore: result?.judgeScore ?? null,
+            savedScore: result?.judgeScore ?? null,
             isEliminated: result?.isEliminated ?? false,
           };
         })}

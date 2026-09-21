@@ -209,6 +209,8 @@ export const en = {
     calculateCta: "Calculate points & broadcast",
     working: "Working…",
     savedCouple: "Saved {name}",
+    scoreSaved: "Score locked in",
+    scorePending: "Not scored yet",
     markedStatus: "Episode marked {status}",
     markedFinale: "Marked as season finale",
     finaleCleared: "Finale flag cleared",
