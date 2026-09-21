@@ -63,21 +63,21 @@ export function AppShell({
   const current = navIndex(pathname);
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-dvh flex-col overflow-hidden">
       <header
-        className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-md"
+        className="z-40 shrink-0 border-b border-border bg-surface/90 backdrop-blur-md"
         style={{ viewTransitionName: "site-header" }}
       >
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-4 md:gap-3 md:px-6">
+        <div className="mx-auto grid h-14 max-w-5xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 md:gap-3 md:px-6">
           <Link
             href="/"
             transitionTypes={["nav-back"]}
-            className="shrink-0 font-display text-lg font-semibold tracking-tight"
+            className="justify-self-start font-display text-lg font-semibold tracking-tight"
           >
             DWTS Pool
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 justify-self-center md:flex">
             {NAV.map(({ href, label, icon: Icon }, index) => {
               const active = pathname === href;
               const types =
@@ -100,7 +100,7 @@ export function AppShell({
             })}
           </nav>
 
-          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 items-center justify-end gap-1.5 justify-self-end sm:gap-2">
             <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
             <StandingChip standing={standing} />
@@ -108,8 +108,11 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 md:px-6 md:pb-10 md:pt-8">
-        {children}
+      {/* Scroll here so the header never shifts when the scrollbar appears */}
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:px-6 md:pb-10 md:pt-8">
+          {children}
+        </div>
       </main>
 
       <nav
