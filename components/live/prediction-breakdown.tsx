@@ -22,15 +22,42 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
         userId: p.userId,
         displayName: p.displayName,
         eliminatedCoupleId: p.eliminatedCoupleId,
-        scores: p.scores,
+        ranks: p.ranks,
       })),
       results,
+      initial.couples,
     );
-  }, [initial.players, results]);
+  }, [initial.players, initial.couples, results]);
 
   const resultByCouple = useMemo(() => {
     return new Map(results.map((r) => [r.coupleId, r]));
   }, [results]);
+
+  const actualRanks = useMemo(() => {
+    const scored = results
+      .filter((r) => r.judgeScore != null)
+      .sort((a, b) => {
+        const diff = (b.judgeScore ?? 0) - (a.judgeScore ?? 0);
+        if (diff !== 0) return diff;
+        const an =
+          initial.couples.find((c) => c.id === a.coupleId)?.celebrityName ?? "";
+        const bn =
+          initial.couples.find((c) => c.id === b.coupleId)?.celebrityName ?? "";
+        return an.localeCompare(bn);
+      });
+    return new Map(scored.map((r, i) => [r.coupleId, i + 1] as const));
+  }, [results, initial.couples]);
+
+  const boardCouples = useMemo(() => {
+    return [...initial.couples].sort((a, b) => {
+      const ar = actualRanks.get(a.id);
+      const br = actualRanks.get(b.id);
+      if (ar != null && br != null) return ar - br;
+      if (ar != null) return -1;
+      if (br != null) return 1;
+      return a.celebrityName.localeCompare(b.celebrityName);
+    });
+  }, [initial.couples, actualRanks]);
 
   const coupleById = useMemo(() => {
     const map = new Map<string, BreakdownCouple>();
@@ -38,27 +65,30 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
     return map;
   }, [initial.couples]);
 
-  const { connected } = useLiveEpisode(initial.episode.id, (payload: LiveEpisodePayload) => {
-    setStatus(payload.status);
-    setResults((prev) => {
-      const changed = new Set<string>();
-      for (const next of payload.results) {
-        const old = prev.find((r) => r.coupleId === next.coupleId);
-        if (
-          !old ||
-          old.judgeScore !== next.judgeScore ||
-          old.isEliminated !== next.isEliminated
-        ) {
-          changed.add(next.coupleId);
+  const { connected } = useLiveEpisode(
+    initial.episode.id,
+    (payload: LiveEpisodePayload) => {
+      setStatus(payload.status);
+      setResults((prev) => {
+        const changed = new Set<string>();
+        for (const next of payload.results) {
+          const old = prev.find((r) => r.coupleId === next.coupleId);
+          if (
+            !old ||
+            old.judgeScore !== next.judgeScore ||
+            old.isEliminated !== next.isEliminated
+          ) {
+            changed.add(next.coupleId);
+          }
         }
-      }
-      if (changed.size > 0) {
-        setPulseIds(changed);
-        window.setTimeout(() => setPulseIds(new Set()), 700);
-      }
-      return payload.results;
-    });
-  });
+        if (changed.size > 0) {
+          setPulseIds(changed);
+          window.setTimeout(() => setPulseIds(new Set()), 700);
+        }
+        return payload.results;
+      });
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -71,7 +101,9 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
             {initial.episode.title}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Pool predictions vs official results
+            {status === "LIVE"
+              ? "Predictions locked — official scores update as the show airs."
+              : "Final results vs pool rank predictions."}
           </p>
         </div>
         <span
@@ -81,15 +113,16 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
               : "bg-background text-muted"
           }`}
         >
-          {connected ? "Live" : "Polling"}
+          {connected ? "Connected" : "Polling"}
         </span>
       </div>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">Official board</h2>
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-          {initial.couples.map((couple) => {
+          {boardCouples.map((couple) => {
             const result = resultByCouple.get(couple.id);
+            const rank = actualRanks.get(couple.id);
             const pulsing = pulseIds.has(couple.id);
             return (
               <li
@@ -98,13 +131,18 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
                   pulsing ? "bg-accent-soft" : ""
                 }`}
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {couple.celebrityName}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    & {couple.proName}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-6 text-center text-xs font-semibold tabular-nums text-muted">
+                    {rank ?? "—"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {couple.celebrityName}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      & {couple.proName}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {result?.isEliminated ? (
@@ -123,7 +161,7 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Player predictions</h2>
+        <h2 className="text-sm font-semibold">Player rankings</h2>
         {players.length === 0 ? (
           <p className="text-sm text-muted">No players have predictions yet.</p>
         ) : (
@@ -132,7 +170,7 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
               <li
                 key={player.userId}
                 className={`rounded-2xl border px-4 py-3 transition-colors duration-500 ${
-                  player.isScoreLeader
+                  player.isRankLeader
                     ? "border-gold bg-gold-soft"
                     : player.elimCorrect
                       ? "border-success/40 bg-success-soft"
@@ -147,9 +185,11 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
                         Elim pick
                       </span>
                     ) : null}
-                    {player.isScoreLeader ? (
+                    {player.isRankLeader ? (
                       <span className="rounded-md bg-gold-soft px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gold">
-                        {player.scoreError === 0 ? "Exact scores" : "Closest scores"}
+                        {player.rankDistance === 0
+                          ? "Perfect order"
+                          : "Best ranks"}
                       </span>
                     ) : null}
                   </div>
@@ -157,17 +197,17 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
                 <p className="mt-1 text-xs text-muted">
                   Elim pick:{" "}
                   {player.eliminatedCoupleId
-                    ? (coupleById.get(player.eliminatedCoupleId)?.celebrityName ??
-                      "—")
+                    ? (coupleById.get(player.eliminatedCoupleId)
+                        ?.celebrityName ?? "—")
                     : "—"}
-                  {player.scoreError != null
-                    ? ` · Score error ${player.scoreError}`
+                  {player.rankDistance != null
+                    ? ` · Rank distance ${player.rankDistance}`
                     : ""}
                 </p>
                 <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {initial.couples.map((couple) => {
-                    const predicted = player.scores[couple.id];
-                    const actual = resultByCouple.get(couple.id)?.judgeScore;
+                  {boardCouples.map((couple) => {
+                    const predicted = player.ranks[couple.id];
+                    const actual = actualRanks.get(couple.id);
                     const exact =
                       predicted != null &&
                       actual != null &&
@@ -183,8 +223,8 @@ export function PredictionBreakdown({ initial }: { initial: BreakdownDTO }) {
                           {couple.celebrityName}
                         </span>
                         <span className="tabular-nums text-muted">
-                          {predicted ?? "—"}
-                          {actual != null ? ` / ${actual}` : ""}
+                          #{predicted ?? "—"}
+                          {actual != null ? ` → #${actual}` : ""}
                         </span>
                       </li>
                     );

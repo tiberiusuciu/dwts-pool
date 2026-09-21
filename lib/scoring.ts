@@ -7,21 +7,27 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  scoreSeasonWinnerPoints,
+  SEASON_WINNER_BASE,
+  SEASON_WINNER_PER_WEEK,
+} from "@/lib/season-scoring";
 
 export const ELIM_POINTS = 50;
-export const SEASON_WINNER_POINTS = 200;
+export {
+  scoreSeasonWinnerPoints,
+  seasonWinnerWeeksHeld,
+  SEASON_WINNER_BASE,
+  SEASON_WINNER_PER_WEEK,
+} from "@/lib/season-scoring";
 
-const PROXIMITY: Record<number, number> = {
-  0: 20,
-  1: 10,
-  2: 5,
-  3: 2,
-  4: 1,
-};
-
-export function scoreProximity(predicted: number, actual: number): number {
-  const delta = Math.abs(Math.round(predicted) - Math.round(actual));
-  return PROXIMITY[delta] ?? 0;
+/** Points for one couple: max(0, n - |predictedRank - actualRank|). */
+export function scoreRankDistance(
+  predictedRank: number,
+  actualRank: number,
+  n: number,
+): number {
+  return Math.max(0, n - Math.abs(predictedRank - actualRank));
 }
 
 export type EpisodeScoreBreakdown = {
@@ -29,19 +35,38 @@ export type EpisodeScoreBreakdown = {
   episodeNumber: number;
   title: string;
   elimPts: number;
-  scorePts: number;
+  rankPts: number;
   seasonPts: number;
   total: number;
   eliminatedCoupleId: string | null;
   actualEliminatedIds: string[];
-  scores: {
+  ranks: {
     coupleId: string;
     celebrityName: string;
-    predicted: number | null;
-    actual: number | null;
+    predictedRank: number | null;
+    actualRank: number | null;
     points: number;
   }[];
 };
+
+function buildActualRanks(
+  results: Pick<ActualResult, "coupleId" | "judgeScore">[],
+  couples: { id: string; celebrityName: string }[],
+): Map<string, number> {
+  const name = new Map(couples.map((c) => [c.id, c.celebrityName]));
+  const scored = results
+    .filter((r) => r.judgeScore != null)
+    .sort((a, b) => {
+      const scoreDiff = (b.judgeScore ?? 0) - (a.judgeScore ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return (name.get(a.coupleId) ?? "").localeCompare(
+        name.get(b.coupleId) ?? "",
+      );
+    });
+  const ranks = new Map<string, number>();
+  scored.forEach((r, i) => ranks.set(r.coupleId, i + 1));
+  return ranks;
+}
 
 export function scoreEpisodeFromData(input: {
   episode: Pick<Episode, "id" | "episodeNumber" | "title" | "isFinale">;
@@ -50,14 +75,16 @@ export function scoreEpisodeFromData(input: {
     Prediction,
     | "kind"
     | "seasonWinnerCoupleId"
+    | "seasonWinnerFromEpisodeNumber"
     | "predictedEliminatedCoupleId"
     | "coupleId"
-    | "predictedScore"
+    | "predictedRank"
   >[];
   couples: { id: string; celebrityName: string }[];
   activeWinnerCoupleId: string | null;
 }): EpisodeScoreBreakdown {
-  const { episode, results, predictions, couples, activeWinnerCoupleId } = input;
+  const { episode, results, predictions, couples, activeWinnerCoupleId } =
+    input;
   const coupleName = new Map(couples.map((c) => [c.id, c.celebrityName]));
 
   const elimPred = predictions.find(
@@ -73,30 +100,38 @@ export function scoreEpisodeFromData(input: {
       ? ELIM_POINTS
       : 0;
 
-  const scorePredByCouple = new Map(
+  const actualRanks = buildActualRanks(results, couples);
+  const n = actualRanks.size;
+
+  const predictedRanks = new Map(
     predictions
-      .filter((p) => p.kind === PredictionKind.WEEKLY_SCORE && p.coupleId)
-      .map((p) => [p.coupleId!, p.predictedScore ?? null] as const),
+      .filter(
+        (p) =>
+          p.kind === PredictionKind.WEEKLY_RANK &&
+          p.coupleId &&
+          p.predictedRank != null,
+      )
+      .map((p) => [p.coupleId!, p.predictedRank!] as const),
   );
 
-  let scorePts = 0;
-  const scores = results
-    .filter((r) => r.judgeScore != null)
-    .map((r) => {
-      const predicted = scorePredByCouple.get(r.coupleId) ?? null;
-      const actual = r.judgeScore!;
+  let rankPts = 0;
+  const ranks = [...actualRanks.entries()]
+    .map(([coupleId, actualRank]) => {
+      const predictedRank = predictedRanks.get(coupleId) ?? null;
       const points =
-        predicted != null ? scoreProximity(predicted, actual) : 0;
-      scorePts += points;
+        predictedRank != null && n > 0
+          ? scoreRankDistance(predictedRank, actualRank, n)
+          : 0;
+      rankPts += points;
       return {
-        coupleId: r.coupleId,
-        celebrityName: coupleName.get(r.coupleId) ?? "Couple",
-        predicted,
-        actual,
+        coupleId,
+        celebrityName: coupleName.get(coupleId) ?? "Couple",
+        predictedRank,
+        actualRank,
         points,
       };
     })
-    .sort((a, b) => a.celebrityName.localeCompare(b.celebrityName));
+    .sort((a, b) => (a.actualRank ?? 99) - (b.actualRank ?? 99));
 
   let seasonPts = 0;
   if (episode.isFinale && activeWinnerCoupleId) {
@@ -104,7 +139,10 @@ export function scoreEpisodeFromData(input: {
       (p) => p.kind === PredictionKind.SEASON_WINNER,
     );
     if (seasonPred?.seasonWinnerCoupleId === activeWinnerCoupleId) {
-      seasonPts = SEASON_WINNER_POINTS;
+      seasonPts = scoreSeasonWinnerPoints(
+        seasonPred.seasonWinnerFromEpisodeNumber,
+        episode.episodeNumber,
+      );
     }
   }
 
@@ -113,12 +151,12 @@ export function scoreEpisodeFromData(input: {
     episodeNumber: episode.episodeNumber,
     title: episode.title,
     elimPts,
-    scorePts,
+    rankPts,
     seasonPts,
-    total: elimPts + scorePts + seasonPts,
+    total: elimPts + rankPts + seasonPts,
     eliminatedCoupleId,
     actualEliminatedIds,
-    scores,
+    ranks,
   };
 }
 
@@ -129,57 +167,6 @@ export async function getSeasonWinnerCoupleId(): Promise<string | null> {
   });
   return active.length === 1 ? active[0].id : null;
 }
-
-export async function scoreEpisodeForUser(
-  userId: string,
-  episodeId: string,
-): Promise<EpisodeScoreBreakdown | null> {
-  const episode = await prisma.episode.findUnique({
-    where: { id: episodeId },
-    include: { actualResults: true },
-  });
-  if (!episode || episode.actualResults.length === 0) return null;
-
-  const [predictions, couples, activeWinnerCoupleId] = await Promise.all([
-    prisma.prediction.findMany({
-      where: {
-        userId,
-        OR: [
-          { kind: PredictionKind.SEASON_WINNER },
-          {
-            episodeId,
-            kind: {
-              in: [
-                PredictionKind.WEEKLY_ELIMINATION,
-                PredictionKind.WEEKLY_SCORE,
-              ],
-            },
-          },
-        ],
-      },
-    }),
-    prisma.couple.findMany({
-      select: { id: true, celebrityName: true },
-    }),
-    episode.isFinale ? getSeasonWinnerCoupleId() : Promise.resolve(null),
-  ]);
-
-  return scoreEpisodeFromData({
-    episode,
-    results: episode.actualResults,
-    predictions,
-    couples,
-    activeWinnerCoupleId,
-  });
-}
-
-export type LeaderboardEntry = {
-  userId: string;
-  displayName: string;
-  totalPoints: number;
-  rank: number;
-  episodes: EpisodeScoreBreakdown[];
-};
 
 export async function recalculateAllPoints(): Promise<
   { userId: string; totalPoints: number }[]
@@ -205,7 +192,7 @@ export async function recalculateAllPoints(): Promise<
         in: [
           PredictionKind.SEASON_WINNER,
           PredictionKind.WEEKLY_ELIMINATION,
-          PredictionKind.WEEKLY_SCORE,
+          PredictionKind.WEEKLY_RANK,
         ],
       },
     },
@@ -255,6 +242,44 @@ export async function recalculateAllPoints(): Promise<
   return updates;
 }
 
+export type LeaderboardEntry = {
+  userId: string;
+  displayName: string;
+  totalPoints: number;
+  rank: number;
+  episodes: EpisodeScoreBreakdown[];
+};
+
+export async function getMyStanding(
+  userId: string,
+): Promise<{ rank: number; totalPoints: number } | null> {
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, totalPoints: true, displayName: true },
+  });
+  if (!me?.displayName) return null;
+
+  const users = await prisma.user.findMany({
+    where: { displayName: { not: null } },
+    select: { id: true, totalPoints: true },
+    orderBy: [{ totalPoints: "desc" }, { displayName: "asc" }],
+  });
+
+  let lastPoints: number | null = null;
+  let lastRank = 0;
+  for (let i = 0; i < users.length; i++) {
+    const user = users[i];
+    if (user.totalPoints !== lastPoints) {
+      lastRank = i + 1;
+      lastPoints = user.totalPoints;
+    }
+    if (user.id === userId) {
+      return { rank: lastRank, totalPoints: user.totalPoints };
+    }
+  }
+  return { rank: users.length, totalPoints: me.totalPoints };
+}
+
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const [users, episodes, couples, activeWinnerCoupleId] = await Promise.all([
     prisma.user.findMany({
@@ -278,7 +303,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         in: [
           PredictionKind.SEASON_WINNER,
           PredictionKind.WEEKLY_ELIMINATION,
-          PredictionKind.WEEKLY_SCORE,
+          PredictionKind.WEEKLY_RANK,
         ],
       },
     },

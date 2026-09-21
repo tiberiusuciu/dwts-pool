@@ -5,19 +5,17 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import {
-  clampScore,
   getPredictableEpisode,
   isEpisodeLocked,
-  SCORE_MAX,
-  SCORE_MIN,
 } from "@/lib/predictions";
 import { prisma } from "@/lib/prisma";
 
 export type SavePredictionsInput = {
   episodeId: string;
-  seasonWinnerCoupleId: string;
-  eliminatedCoupleId: string;
-  scores: { coupleId: string; score: number }[];
+  seasonWinnerCoupleId?: string | null;
+  eliminatedCoupleId?: string | null;
+  /** Ordered highest → lowest; rank 1 = first entry */
+  rankOrder?: string[];
 };
 
 export type SavePredictionsResult =
@@ -46,7 +44,7 @@ export async function savePredictions(
   }
 
   if (isEpisodeLocked(episode)) {
-    return { ok: false, error: "Predictions are locked for this episode" };
+    return { ok: false, error: "Predictions are locked (Tue 8pm ET)" };
   }
 
   const activeCouples = await prisma.couple.findMany({
@@ -55,111 +53,56 @@ export async function savePredictions(
   });
   const activeIds = new Set(activeCouples.map((c) => c.id));
 
-  if (!activeIds.has(input.seasonWinnerCoupleId)) {
+  const hasSeason = Boolean(input.seasonWinnerCoupleId);
+  const hasElim = Boolean(input.eliminatedCoupleId);
+  const hasRanks = Boolean(input.rankOrder?.length);
+
+  if (!hasSeason && !hasElim && !hasRanks) {
+    return { ok: false, error: "Nothing to save" };
+  }
+
+  if (hasSeason && !activeIds.has(input.seasonWinnerCoupleId!)) {
     return { ok: false, error: "Pick an active couple for season winner" };
   }
-  if (!activeIds.has(input.eliminatedCoupleId)) {
+  if (hasElim && !activeIds.has(input.eliminatedCoupleId!)) {
     return { ok: false, error: "Pick an active couple for elimination" };
   }
 
-  if (input.scores.length !== activeCouples.length) {
-    return { ok: false, error: "Predict a score for every active couple" };
-  }
-
-  const scoreCoupleIds = new Set<string>();
-  for (const entry of input.scores) {
-    if (!activeIds.has(entry.coupleId)) {
-      return { ok: false, error: "Score includes an inactive couple" };
+  if (hasRanks) {
+    const order = input.rankOrder!;
+    if (order.length !== activeCouples.length) {
+      return { ok: false, error: "Rank every active couple" };
     }
-    if (scoreCoupleIds.has(entry.coupleId)) {
-      return { ok: false, error: "Duplicate couple score" };
+    const seen = new Set<string>();
+    for (const id of order) {
+      if (!activeIds.has(id) || seen.has(id)) {
+        return { ok: false, error: "Invalid rank order" };
+      }
+      seen.add(id);
     }
-    scoreCoupleIds.add(entry.coupleId);
-    if (
-      !Number.isFinite(entry.score) ||
-      entry.score < SCORE_MIN ||
-      entry.score > SCORE_MAX
-    ) {
-      return {
-        ok: false,
-        error: `Scores must be between ${SCORE_MIN} and ${SCORE_MAX}`,
-      };
-    }
-  }
-
-  if (scoreCoupleIds.size !== activeIds.size) {
-    return { ok: false, error: "Predict a score for every active couple" };
   }
 
   await prisma.$transaction(async (tx) => {
-    const existingWinner = await tx.prediction.findFirst({
-      where: { userId, kind: PredictionKind.SEASON_WINNER },
-    });
-    if (existingWinner) {
-      await tx.prediction.update({
-        where: { id: existingWinner.id },
-        data: {
-          seasonWinnerCoupleId: input.seasonWinnerCoupleId,
-          episodeId: null,
-          coupleId: null,
-          predictedScore: null,
-          predictedEliminatedCoupleId: null,
-        },
+    if (hasSeason) {
+      const existingWinner = await tx.prediction.findFirst({
+        where: { userId, kind: PredictionKind.SEASON_WINNER },
       });
-    } else {
-      await tx.prediction.create({
-        data: {
-          userId,
-          kind: PredictionKind.SEASON_WINNER,
-          seasonWinnerCoupleId: input.seasonWinnerCoupleId,
-        },
-      });
-    }
-
-    const existingElim = await tx.prediction.findFirst({
-      where: {
-        userId,
-        kind: PredictionKind.WEEKLY_ELIMINATION,
-        episodeId: input.episodeId,
-      },
-    });
-    if (existingElim) {
-      await tx.prediction.update({
-        where: { id: existingElim.id },
-        data: {
-          predictedEliminatedCoupleId: input.eliminatedCoupleId,
-          seasonWinnerCoupleId: null,
-          coupleId: null,
-          predictedScore: null,
-        },
-      });
-    } else {
-      await tx.prediction.create({
-        data: {
-          userId,
-          kind: PredictionKind.WEEKLY_ELIMINATION,
-          episodeId: input.episodeId,
-          predictedEliminatedCoupleId: input.eliminatedCoupleId,
-        },
-      });
-    }
-
-    for (const entry of input.scores) {
-      const score = clampScore(entry.score);
-      const existingScore = await tx.prediction.findFirst({
-        where: {
-          userId,
-          kind: PredictionKind.WEEKLY_SCORE,
-          episodeId: input.episodeId,
-          coupleId: entry.coupleId,
-        },
-      });
-      if (existingScore) {
+      if (existingWinner) {
+        const coupleChanged =
+          existingWinner.seasonWinnerCoupleId !== input.seasonWinnerCoupleId;
         await tx.prediction.update({
-          where: { id: existingScore.id },
+          where: { id: existingWinner.id },
           data: {
-            predictedScore: score,
-            seasonWinnerCoupleId: null,
+            seasonWinnerCoupleId: input.seasonWinnerCoupleId!,
+            ...(coupleChanged
+              ? { seasonWinnerFromEpisodeNumber: episode.episodeNumber }
+              : existingWinner.seasonWinnerFromEpisodeNumber == null
+                ? { seasonWinnerFromEpisodeNumber: episode.episodeNumber }
+                : {}),
+            episodeId: null,
+            coupleId: null,
+            predictedScore: null,
+            predictedRank: null,
             predictedEliminatedCoupleId: null,
           },
         });
@@ -167,16 +110,67 @@ export async function savePredictions(
         await tx.prediction.create({
           data: {
             userId,
-            kind: PredictionKind.WEEKLY_SCORE,
-            episodeId: input.episodeId,
-            coupleId: entry.coupleId,
-            predictedScore: score,
+            kind: PredictionKind.SEASON_WINNER,
+            seasonWinnerCoupleId: input.seasonWinnerCoupleId!,
+            seasonWinnerFromEpisodeNumber: episode.episodeNumber,
           },
         });
       }
     }
+
+    if (hasElim) {
+      const existingElim = await tx.prediction.findFirst({
+        where: {
+          userId,
+          kind: PredictionKind.WEEKLY_ELIMINATION,
+          episodeId: input.episodeId,
+        },
+      });
+      if (existingElim) {
+        await tx.prediction.update({
+          where: { id: existingElim.id },
+          data: {
+            predictedEliminatedCoupleId: input.eliminatedCoupleId!,
+            seasonWinnerCoupleId: null,
+            coupleId: null,
+            predictedScore: null,
+            predictedRank: null,
+          },
+        });
+      } else {
+        await tx.prediction.create({
+          data: {
+            userId,
+            kind: PredictionKind.WEEKLY_ELIMINATION,
+            episodeId: input.episodeId,
+            predictedEliminatedCoupleId: input.eliminatedCoupleId!,
+          },
+        });
+      }
+    }
+
+    if (hasRanks) {
+      await tx.prediction.deleteMany({
+        where: {
+          userId,
+          episodeId: input.episodeId,
+          kind: PredictionKind.WEEKLY_RANK,
+        },
+      });
+      await tx.prediction.createMany({
+        data: input.rankOrder!.map((coupleId, index) => ({
+          userId,
+          kind: PredictionKind.WEEKLY_RANK,
+          episodeId: input.episodeId,
+          coupleId,
+          predictedRank: index + 1,
+        })),
+      });
+    }
   });
 
   revalidatePath("/predict");
+  revalidatePath("/");
+  revalidatePath("/live");
   return { ok: true };
 }

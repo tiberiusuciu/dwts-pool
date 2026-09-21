@@ -1,13 +1,42 @@
 import { auth } from "@/auth";
 import { EpisodeTimeline } from "@/components/episodes/episode-timeline";
+import { RankPredictionBoard } from "@/components/predictions/rank-prediction-board";
 import { getEpisodesWithResults } from "@/lib/episodes";
+import {
+  defaultRankOrder,
+  formatLockCountdown,
+  getActiveCouples,
+  getPredictableEpisode,
+  getUserPredictions,
+  isEpisodeLocked,
+} from "@/lib/predictions";
 
 export default async function HomePage() {
-  const [session, episodes] = await Promise.all([
-    auth(),
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  const [episodes, upcoming, couples] = await Promise.all([
     getEpisodesWithResults(),
+    getPredictableEpisode(),
+    getActiveCouples(),
   ]);
+
   const name = session?.user?.displayName ?? "there";
+  const predictions =
+    userId && upcoming
+      ? await getUserPredictions(userId, upcoming.id)
+      : null;
+
+  const rankOrder =
+    predictions && Object.keys(predictions.ranks).length === couples.length
+      ? [...couples]
+          .sort(
+            (a, b) =>
+              (predictions.ranks[a.id] ?? 999) -
+              (predictions.ranks[b.id] ?? 999),
+          )
+          .map((c) => c.id)
+      : defaultRankOrder(couples);
 
   return (
     <div>
@@ -18,8 +47,20 @@ export default async function HomePage() {
         Hey, {name}
       </h1>
       <p className="mt-3 max-w-md text-muted">
-        Season 35 — follow past scores and get ready for the next live show.
+        Season 35 — rank next week&apos;s scoreboard before Tue 8pm ET.
       </p>
+
+      {upcoming && userId ? (
+        <RankPredictionBoard
+          episodeId={upcoming.id}
+          episodeTitle={upcoming.title}
+          episodeNumber={upcoming.episodeNumber}
+          locked={isEpisodeLocked(upcoming)}
+          lockLabel={formatLockCountdown(upcoming)}
+          couples={couples}
+          initialOrder={rankOrder}
+        />
+      ) : null}
 
       <EpisodeTimeline episodes={episodes} />
     </div>

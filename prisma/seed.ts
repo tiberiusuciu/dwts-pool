@@ -83,17 +83,107 @@ async function upsertEpisode(data: {
   title: string;
   airDate: Date;
   status: EpisodeStatus;
+  isFinale?: boolean;
 }) {
   return prisma.episode.upsert({
     where: { episodeNumber: data.episodeNumber },
-    create: data,
+    create: {
+      episodeNumber: data.episodeNumber,
+      title: data.title,
+      airDate: data.airDate,
+      status: data.status,
+      isFinale: Boolean(data.isFinale),
+    },
     update: {
       title: data.title,
       airDate: data.airDate,
       status: data.status,
+      isFinale: Boolean(data.isFinale),
     },
   });
 }
+
+const EPISODES: {
+  episodeNumber: number;
+  title: string;
+  airDate: string;
+  status: EpisodeStatus;
+  isFinale?: boolean;
+}[] = [
+  {
+    episodeNumber: 1,
+    title: "Premiere: Night One",
+    airDate: "2026-09-15",
+    status: EpisodeStatus.PAST,
+  },
+  {
+    episodeNumber: 2,
+    title: "Premiere: Night Two",
+    airDate: "2026-09-16",
+    status: EpisodeStatus.PAST,
+  },
+  {
+    episodeNumber: 3,
+    title: "Viral Hits Night",
+    airDate: "2026-09-22",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 4,
+    title: "Yacht Rock Night",
+    airDate: "2026-09-29",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 5,
+    title: "Mariah Carey Night",
+    airDate: "2026-10-06",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 6,
+    title: "Week 5",
+    airDate: "2026-10-13",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 7,
+    title: "Dedication Night",
+    airDate: "2026-10-20",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 8,
+    title: "Horror Movie Night",
+    airDate: "2026-10-27",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 9,
+    title: "Disney Night",
+    airDate: "2026-11-03",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 10,
+    title: "Grammy Night",
+    airDate: "2026-11-10",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 11,
+    title: "Semi-Finals",
+    airDate: "2026-11-17",
+    status: EpisodeStatus.UPCOMING,
+  },
+  {
+    episodeNumber: 12,
+    title: "Finale",
+    airDate: "2026-11-24",
+    status: EpisodeStatus.UPCOMING,
+    isFinale: true,
+  },
+];
 
 async function seedNightResults(
   episodeId: string,
@@ -145,24 +235,26 @@ async function main() {
     couples.map((c) => [c.celebrityName, c.id] as const),
   );
 
-  const ep1 = await upsertEpisode({
-    episodeNumber: 1,
-    title: "Premiere Night 1",
-    airDate: new Date("2026-09-15T00:00:00.000Z"),
-    status: EpisodeStatus.PAST,
+  const episodes = [];
+  for (const ep of EPISODES) {
+    episodes.push(
+      await upsertEpisode({
+        episodeNumber: ep.episodeNumber,
+        title: ep.title,
+        airDate: new Date(`${ep.airDate}T00:00:00.000Z`),
+        status: ep.status,
+        isFinale: ep.isFinale,
+      }),
+    );
+  }
+
+  // Drop any stray episodes outside the known Season 35 slate
+  await prisma.episode.deleteMany({
+    where: { episodeNumber: { gt: EPISODES.length } },
   });
-  const ep2 = await upsertEpisode({
-    episodeNumber: 2,
-    title: "Premiere Night 2",
-    airDate: new Date("2026-09-16T00:00:00.000Z"),
-    status: EpisodeStatus.PAST,
-  });
-  await upsertEpisode({
-    episodeNumber: 3,
-    title: "Week 2",
-    airDate: new Date("2026-09-22T00:00:00.000Z"),
-    status: EpisodeStatus.UPCOMING,
-  });
+
+  const ep1 = episodes[0];
+  const ep2 = episodes[1];
 
   await seedNightResults(ep1.id, EP1_RESULTS, coupleByName);
   await seedNightResults(ep2.id, EP2_RESULTS, coupleByName);
@@ -182,7 +274,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded Season 35: ${couples.length} couples, episodes 1–3, Ep1/Ep2 results.`,
+    `Seeded Season 35: ${couples.length} couples, ${episodes.length} episodes (finale Ep ${EPISODES.length}).`,
   );
 }
 

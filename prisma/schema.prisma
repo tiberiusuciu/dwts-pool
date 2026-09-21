@@ -27,6 +27,7 @@ enum PredictionKind {
   SEASON_WINNER
   WEEKLY_ELIMINATION
   WEEKLY_SCORE
+  WEEKLY_RANK
 }
 
 model User {
@@ -133,9 +134,12 @@ model Prediction {
   userId                      String
   kind                        PredictionKind
   seasonWinnerCoupleId        String?
+  /** Episode number when the current season-winner couple was first locked in. Resets only when the couple changes. */
+  seasonWinnerFromEpisodeNumber Int?
   episodeId                   String?
   coupleId                    String?
   predictedScore              Float?
+  predictedRank               Int?
   predictedEliminatedCoupleId String?
 
   user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

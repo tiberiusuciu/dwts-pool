@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6f8;
-  --foreground: #121417;
-  --muted: #5c6570;
-  --surface: #ffffff;
-  --border: #e2e6eb;
-  --accent: #c41e3a;
-  --accent-hover: #a31830;
-  --accent-soft: #fce8ec;
-  --success: #0f7a4a;
-  --success-soft: #e6f6ee;
-  --gold: #9a6b0a;
-  --gold-soft: #f8efd6;
+  --background: #07041a;
+  --foreground: #ffe8ef;
+  --muted: #c9a0c4;
+  --surface: #160b36;
+  --border: #3a1480;
+  --accent: #ff4db3;
+  --accent-hover: #e035a0;
+  --accent-soft: color-mix(in srgb, #ff4db3 18%, transparent);
+  --success: #3dcf8e;
+  --success-soft: color-mix(in srgb, #3dcf8e 16%, transparent);
+  --gold: #ffc1d1;
+  --gold-soft: color-mix(in srgb, #ffc1d1 16%, transparent);
+  --glow-purple: #8b10b9;
+  --glow-orchid: #c83cd3;
 }
 
 @theme inline {
@@ -32,10 +34,119 @@
   --font-display: var(--font-syne);
 }
 
+html {
+  min-height: 100%;
+  background-color: var(--background);
+}
+
 body {
-  background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, #ffffff 0%, transparent 55%),
-    var(--background);
+  min-height: 100%;
+  /* Fixed so the glow stays viewport-tied and never seams when content scrolls */
+  background-color: var(--background);
+  background-image:
+    radial-gradient(
+      ellipse 100% 70% at 50% -10%,
+      color-mix(in srgb, var(--glow-orchid) 28%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 80% 50% at 100% 0%,
+      color-mix(in srgb, var(--glow-purple) 22%, transparent) 0%,
+      transparent 50%
+    );
+  background-attachment: fixed, fixed;
+  background-repeat: no-repeat, no-repeat;
   color: var(--foreground);
   font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
+
+/* Page transitions (View Transition API via React <ViewTransition>) */
+:root {
+  --duration-exit: 150ms;
+  --duration-enter: 210ms;
+  --duration-move: 360ms;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide {
+  from {
+    translate: var(--slide-offset, 24px);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+@keyframes slide-y {
+  from {
+    transform: translateY(12px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+::view-transition-old(.fade-slide) {
+  animation:
+    var(--duration-exit) ease-out both fade reverse,
+    var(--duration-exit) ease-out both slide-y reverse;
+}
+
+::view-transition-new(.fade-slide) {
+  animation:
+    var(--duration-enter) ease-in var(--duration-exit) both fade,
+    var(--duration-move) ease-out both slide-y;
+}
+
+::view-transition-old(.nav-forward) {
+  --slide-offset: -40px;
+  animation:
+    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-move) ease-in-out both slide reverse;
+}
+
+::view-transition-new(.nav-forward) {
+  --slide-offset: 40px;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
+}
+
+::view-transition-old(.nav-back) {
+  --slide-offset: 40px;
+  animation:
+    var(--duration-exit) ease-in both fade reverse,
+    var(--duration-move) ease-in-out both slide reverse;
+}
+
+::view-transition-new(.nav-back) {
+  --slide-offset: -40px;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both fade,
+    var(--duration-move) ease-in-out both slide;
+}
+
+::view-transition-group(site-header),
+::view-transition-group(site-tabbar) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(site-header),
+::view-transition-old(site-tabbar) {
+  display: none;
+}
+
+::view-transition-new(site-header),
+::view-transition-new(site-tabbar) {
+  animation: none;
+}
+

@@ -120,12 +120,14 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
                       </div>
                       <p className="text-xs text-muted">
                         Elim {ep.elimPts > 0 ? `+${ep.elimPts}` : "0"}
-                        {ep.seasonPts > 0 ? ` · Season +${ep.seasonPts}` : ""}
-                        {` · Scores +${ep.scorePts}`}
+                        {ep.seasonPts > 0
+                          ? ` · Season +${ep.seasonPts}`
+                          : ""}
+                        {` · Ranks +${ep.rankPts}`}
                       </p>
-                      {ep.scores.length > 0 ? (
+                      {ep.ranks.length > 0 ? (
                         <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                          {ep.scores.map((s) => (
+                          {ep.ranks.map((s) => (
                             <li
                               key={s.coupleId}
                               className="rounded-lg bg-surface px-2 py-1.5 text-xs"
@@ -134,7 +136,8 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
                                 {s.celebrityName}
                               </span>
                               <span className="tabular-nums text-muted">
-                                {s.predicted ?? "—"} / {s.actual ?? "—"}
+                                #{s.predictedRank ?? "—"} → #
+                                {s.actualRank ?? "—"}
                                 {s.points > 0 ? ` · +${s.points}` : ""}
                               </span>
                             </li>

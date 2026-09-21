@@ -45,10 +45,11 @@ export type BreakdownPlayer = {
   userId: string;
   displayName: string;
   eliminatedCoupleId: string | null;
-  scores: Record<string, number>;
+  /** coupleId → predicted rank (1 = highest) */
+  ranks: Record<string, number>;
   elimCorrect: boolean;
-  scoreError: number | null;
-  isScoreLeader: boolean;
+  rankDistance: number | null;
+  isRankLeader: boolean;
 };
 
 export type BreakdownDTO = {
@@ -64,13 +65,32 @@ export type BreakdownDTO = {
 };
 
 export function computeHighlights(
-  players: Omit<BreakdownPlayer, "elimCorrect" | "scoreError" | "isScoreLeader">[],
+  players: Omit<
+    BreakdownPlayer,
+    "elimCorrect" | "rankDistance" | "isRankLeader"
+  >[],
   results: LiveResultRow[],
+  couples: BreakdownCouple[],
 ): BreakdownPlayer[] {
   const eliminatedIds = new Set(
     results.filter((r) => r.isEliminated).map((r) => r.coupleId),
   );
-  const scored = results.filter((r) => r.judgeScore != null);
+
+  const scored = results
+    .filter((r) => r.judgeScore != null)
+    .sort((a, b) => {
+      const diff = (b.judgeScore ?? 0) - (a.judgeScore ?? 0);
+      if (diff !== 0) return diff;
+      const an =
+        couples.find((c) => c.id === a.coupleId)?.celebrityName ?? "";
+      const bn =
+        couples.find((c) => c.id === b.coupleId)?.celebrityName ?? "";
+      return an.localeCompare(bn);
+    });
+  const actualRanks = new Map(
+    scored.map((r, i) => [r.coupleId, i + 1] as const),
+  );
+  const n = actualRanks.size;
 
   const withMeta = players.map((player) => {
     const elimCorrect =
@@ -78,30 +98,30 @@ export function computeHighlights(
       player.eliminatedCoupleId != null &&
       eliminatedIds.has(player.eliminatedCoupleId);
 
-    let scoreError: number | null = null;
-    if (scored.length > 0 && Object.keys(player.scores).length > 0) {
+    let rankDistance: number | null = null;
+    if (n > 0 && Object.keys(player.ranks).length > 0) {
       let total = 0;
       let count = 0;
-      for (const result of scored) {
-        const predicted = player.scores[result.coupleId];
-        if (predicted == null || result.judgeScore == null) continue;
-        total += Math.abs(predicted - result.judgeScore);
+      for (const [coupleId, actualRank] of actualRanks) {
+        const predicted = player.ranks[coupleId];
+        if (predicted == null) continue;
+        total += Math.abs(predicted - actualRank);
         count += 1;
       }
-      scoreError = count > 0 ? total : null;
+      rankDistance = count > 0 ? total : null;
     }
 
-    return { ...player, elimCorrect, scoreError, isScoreLeader: false };
+    return { ...player, elimCorrect, rankDistance, isRankLeader: false };
   });
 
-  const errors = withMeta
-    .map((p) => p.scoreError)
+  const distances = withMeta
+    .map((p) => p.rankDistance)
     .filter((e): e is number => e != null);
-  const best = errors.length > 0 ? Math.min(...errors) : null;
+  const best = distances.length > 0 ? Math.min(...distances) : null;
 
   return withMeta.map((p) => ({
     ...p,
-    isScoreLeader: best != null && p.scoreError === best,
+    isRankLeader: best != null && p.rankDistance === best,
   }));
 }
 
@@ -131,7 +151,7 @@ export async function getBreakdownForEpisode(
     where: {
       episodeId,
       kind: {
-        in: [PredictionKind.WEEKLY_ELIMINATION, PredictionKind.WEEKLY_SCORE],
+        in: [PredictionKind.WEEKLY_ELIMINATION, PredictionKind.WEEKLY_RANK],
       },
       userId: { in: users.map((u) => u.id) },
     },
@@ -139,11 +159,11 @@ export async function getBreakdownForEpisode(
 
   const byUser = new Map<
     string,
-    { eliminatedCoupleId: string | null; scores: Record<string, number> }
+    { eliminatedCoupleId: string | null; ranks: Record<string, number> }
   >();
 
   for (const user of users) {
-    byUser.set(user.id, { eliminatedCoupleId: null, scores: {} });
+    byUser.set(user.id, { eliminatedCoupleId: null, ranks: {} });
   }
 
   for (const pred of predictions) {
@@ -151,8 +171,12 @@ export async function getBreakdownForEpisode(
     if (!bucket) continue;
     if (pred.kind === PredictionKind.WEEKLY_ELIMINATION) {
       bucket.eliminatedCoupleId = pred.predictedEliminatedCoupleId;
-    } else if (pred.kind === PredictionKind.WEEKLY_SCORE && pred.coupleId != null) {
-      bucket.scores[pred.coupleId] = pred.predictedScore ?? 0;
+    } else if (
+      pred.kind === PredictionKind.WEEKLY_RANK &&
+      pred.coupleId != null &&
+      pred.predictedRank != null
+    ) {
+      bucket.ranks[pred.coupleId] = pred.predictedRank;
     }
   }
 
@@ -169,10 +193,11 @@ export async function getBreakdownForEpisode(
         userId: u.id,
         displayName: u.displayName ?? "Player",
         eliminatedCoupleId: bucket.eliminatedCoupleId,
-        scores: bucket.scores,
+        ranks: bucket.ranks,
       };
     }),
     results,
+    couples,
   );
 
   return {
@@ -189,6 +214,12 @@ export async function getBreakdownForEpisode(
 }
 
 export async function resolveFocusEpisodeId() {
+  const upcoming = await prisma.episode.findFirst({
+    where: { status: "UPCOMING" },
+    orderBy: { episodeNumber: "asc" },
+  });
+  if (upcoming) return upcoming.id;
+
   const live = await prisma.episode.findFirst({
     where: { status: "LIVE" },
     orderBy: { episodeNumber: "asc" },

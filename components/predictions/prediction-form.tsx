@@ -1,78 +1,60 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
+import { savePredictions } from "@/app/(app)/predict/actions";
+import type { CoupleOption } from "@/lib/predictions";
 import {
-  savePredictions,
-  type SavePredictionsResult,
-} from "@/app/(app)/predict/actions";
-import type { CoupleOption, UserPredictionState } from "@/lib/predictions";
-import {
-  SCORE_DEFAULT,
-  SCORE_MAX,
-  SCORE_MIN,
-} from "@/lib/predictions";
-
-type Props = {
-  episodeId: string;
-  episodeTitle: string;
-  episodeNumber: number;
-  locked: boolean;
-  couples: CoupleOption[];
-  initial: UserPredictionState;
-};
+  SEASON_WINNER_BASE,
+  SEASON_WINNER_PER_WEEK,
+  scoreSeasonWinnerPoints,
+  seasonWinnerWeeksHeld,
+} from "@/lib/season-scoring";
 
 function CouplePickList({
-  label,
   couples,
   value,
   disabled,
   onChange,
 }: {
-  label: string;
   couples: CoupleOption[];
   value: string | null;
   disabled: boolean;
   onChange: (id: string) => void;
 }) {
   return (
-    <fieldset disabled={disabled} className="space-y-3">
-      <legend className="font-display text-base font-semibold tracking-tight">
-        {label}
-      </legend>
-      <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-        {couples.map((couple) => {
-          const selected = value === couple.id;
-          return (
-            <li key={couple.id}>
-              <label
-                className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors ${
-                  selected ? "bg-accent-soft" : "hover:bg-background"
-                } ${disabled ? "cursor-default opacity-80" : ""}`}
-              >
-                <input
-                  type="radio"
-                  name={label}
-                  className="size-4 accent-[var(--accent)]"
-                  checked={selected}
-                  onChange={() => onChange(couple.id)}
-                  disabled={disabled}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {couple.celebrityName}
-                  </span>
-                  <span className="block truncate text-xs text-muted">
-                    & {couple.proName}
-                  </span>
+    <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+      {couples.map((couple) => {
+        const selected = value === couple.id;
+        return (
+          <li key={couple.id}>
+            <label
+              className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors ${
+                selected ? "bg-accent-soft" : "hover:bg-background"
+              } ${disabled ? "cursor-default opacity-80" : ""}`}
+            >
+              <input
+                type="radio"
+                name="season-winner"
+                className="size-4 accent-[var(--accent)]"
+                checked={selected}
+                onChange={() => onChange(couple.id)}
+                disabled={disabled}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">
+                  {couple.celebrityName}
                 </span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
-    </fieldset>
+                <span className="block truncate text-xs text-muted">
+                  & {couple.proName}
+                </span>
+              </span>
+            </label>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -80,165 +62,160 @@ export function PredictionForm({
   episodeId,
   episodeTitle,
   episodeNumber,
+  finaleEpisodeNumber,
   locked,
   couples,
   initial,
-}: Props) {
-  const [seasonWinnerCoupleId, setSeasonWinnerCoupleId] = useState(
-    initial.seasonWinnerCoupleId,
+}: {
+  episodeId: string;
+  episodeTitle: string;
+  episodeNumber: number;
+  /** Best-known finale / last episode # for points forecast */
+  finaleEpisodeNumber: number;
+  locked: boolean;
+  couples: CoupleOption[];
+  initial: {
+    seasonWinnerCoupleId: string | null;
+    seasonWinnerFromEpisodeNumber: number | null;
+  };
+}) {
+  const router = useRouter();
+  const activeIds = useMemo(
+    () => new Set(couples.map((c) => c.id)),
+    [couples],
   );
-  const [eliminatedCoupleId, setEliminatedCoupleId] = useState(
-    initial.eliminatedCoupleId,
-  );
-  const [scores, setScores] = useState<Record<string, number>>(() => {
-    const next: Record<string, number> = {};
-    for (const couple of couples) {
-      next[couple.id] = initial.scores[couple.id] ?? SCORE_DEFAULT;
-    }
-    return next;
-  });
-  const [message, setMessage] = useState<string | null>(null);
+  const savedId =
+    initial.seasonWinnerCoupleId != null &&
+    activeIds.has(initial.seasonWinnerCoupleId)
+      ? initial.seasonWinnerCoupleId
+      : null;
+  const savedFrom =
+    savedId != null
+      ? (initial.seasonWinnerFromEpisodeNumber ?? episodeNumber)
+      : null;
+
+  const [seasonWinnerCoupleId, setSeasonWinnerCoupleId] = useState(savedId);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const canSave = useMemo(() => {
-    return Boolean(seasonWinnerCoupleId && eliminatedCoupleId && !locked);
-  }, [seasonWinnerCoupleId, eliminatedCoupleId, locked]);
+  const pickEliminated =
+    initial.seasonWinnerCoupleId != null && savedId == null;
 
-  function bumpScore(coupleId: string, delta: number) {
-    setScores((prev) => {
-      const current = prev[coupleId] ?? SCORE_DEFAULT;
-      const next = Math.min(SCORE_MAX, Math.max(SCORE_MIN, current + delta));
-      return { ...prev, [coupleId]: next };
-    });
-  }
+  const dirty =
+    seasonWinnerCoupleId !== savedId && seasonWinnerCoupleId != null;
+  const isSwap = savedId != null && dirty;
+
+  const fromEpisode =
+    seasonWinnerCoupleId != null && seasonWinnerCoupleId === savedId && savedFrom
+      ? savedFrom
+      : episodeNumber;
+
+  const forecastFinale = Math.max(finaleEpisodeNumber, episodeNumber);
+  const weeksIfHeld = seasonWinnerWeeksHeld(fromEpisode, forecastFinale);
+  const forecastPts = scoreSeasonWinnerPoints(fromEpisode, forecastFinale);
+
+  const canSave = Boolean(
+    dirty &&
+      seasonWinnerCoupleId &&
+      activeIds.has(seasonWinnerCoupleId) &&
+      !locked,
+  );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!seasonWinnerCoupleId || !eliminatedCoupleId || locked) return;
-
+    if (!canSave || !seasonWinnerCoupleId) return;
     setError(null);
     setMessage(null);
-
     startTransition(async () => {
-      const result: SavePredictionsResult = await savePredictions({
+      const result = await savePredictions({
         episodeId,
         seasonWinnerCoupleId,
-        eliminatedCoupleId,
-        scores: couples.map((c) => ({
-          coupleId: c.id,
-          score: scores[c.id] ?? SCORE_DEFAULT,
-        })),
       });
-
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setMessage("Predictions saved");
+      setMessage("Season winner saved");
+      router.refresh();
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-10 pb-28">
+    <form onSubmit={onSubmit} className={`space-y-6 ${canSave ? "pb-28" : ""}`}>
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
           Episode {episodeNumber}
         </p>
         <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
-          {episodeTitle}
+          Season winner
         </h1>
+        <p className="mt-2 text-sm text-muted">
+          {episodeTitle}. Correct pick pays {SEASON_WINNER_BASE} +{" "}
+          {SEASON_WINNER_PER_WEEK} pts per week held through the finale.
+        </p>
         {locked ? (
           <p className="mt-3 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-muted">
-            Predictions locked for this episode.
+            Predictions locked (Tue 8pm ET or episode live).
           </p>
-        ) : (
-          <p className="mt-2 text-sm text-muted">
-            Pick a season winner, who goes home, and each couple&apos;s score.
-          </p>
-        )}
+        ) : null}
       </div>
 
+      {pickEliminated ? (
+        <p className="rounded-xl border border-accent/40 bg-accent-soft px-3 py-2 text-sm text-accent">
+          Your previous pick was eliminated — choose a new winner (week bonus
+          resets).
+        </p>
+      ) : null}
+
       <CouplePickList
-        label="Season winner"
         couples={couples}
         value={seasonWinnerCoupleId}
         disabled={locked}
         onChange={setSeasonWinnerCoupleId}
       />
 
-      <CouplePickList
-        label="Elimination pick"
-        couples={couples}
-        value={eliminatedCoupleId}
-        disabled={locked}
-        onChange={setEliminatedCoupleId}
-      />
+      {seasonWinnerCoupleId ? (
+        <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            If you&apos;re right:{" "}
+            <span className="tabular-nums text-accent">{forecastPts} pts</span>
+          </p>
+          <p className="text-xs text-muted">
+            {SEASON_WINNER_BASE} base + {SEASON_WINNER_PER_WEEK} × {weeksIfHeld}{" "}
+            week{weeksIfHeld === 1 ? "" : "s"} (held Ep {fromEpisode} → Ep{" "}
+            {forecastFinale}).
+            {seasonWinnerCoupleId === savedId
+              ? " Grows each week you keep this pick."
+              : null}
+          </p>
+        </div>
+      ) : null}
 
-      <section className="space-y-3">
-        <h2 className="font-display text-base font-semibold tracking-tight">
-          Score predictions
-        </h2>
-        <p className="text-xs text-muted">
-          {SCORE_MIN}–{SCORE_MAX} points · tap − / +
+      {isSwap && !locked ? (
+        <p className="rounded-xl border border-accent/40 bg-accent-soft px-3 py-2 text-sm text-accent">
+          Switching couples resets your week bonus. You&apos;ll start over from
+          Ep {episodeNumber} ({SEASON_WINNER_BASE} + {SEASON_WINNER_PER_WEEK}
+          /week from here).
         </p>
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-          {couples.map((couple) => {
-            const value = scores[couple.id] ?? SCORE_DEFAULT;
-            return (
-              <li
-                key={couple.id}
-                className="flex items-center justify-between gap-3 px-3 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {couple.celebrityName}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    & {couple.proName}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label={`Decrease score for ${couple.celebrityName}`}
-                    disabled={locked || value <= SCORE_MIN}
-                    onClick={() => bumpScore(couple.id, -1)}
-                    className="flex size-11 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-colors hover:bg-surface disabled:opacity-40"
-                  >
-                    <Minus className="size-4" />
-                  </button>
-                  <span className="w-10 text-center text-lg font-semibold tabular-nums">
-                    {value}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Increase score for ${couple.celebrityName}`}
-                    disabled={locked || value >= SCORE_MAX}
-                    onClick={() => bumpScore(couple.id, 1)}
-                    className="flex size-11 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-colors hover:bg-surface disabled:opacity-40"
-                  >
-                    <Plus className="size-4" />
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      ) : null}
 
       {error ? <p className="text-sm text-accent">{error}</p> : null}
       {message ? <p className="text-sm text-muted">{message}</p> : null}
 
-      {!locked ? (
+      {canSave ? (
         <div className="fixed inset-x-0 bottom-16 z-30 border-t border-border bg-surface/95 p-4 backdrop-blur-md md:bottom-0">
           <div className="mx-auto max-w-5xl md:px-6">
             <button
               type="submit"
-              disabled={!canSave || pending}
+              disabled={pending}
               className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
             >
-              {pending ? "Saving…" : "Save predictions"}
+              {pending
+                ? "Saving…"
+                : isSwap
+                  ? "Confirm new winner (reset weeks)"
+                  : "Save season winner"}
             </button>
           </div>
         </div>
