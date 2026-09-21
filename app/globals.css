@@ -193,5 +193,213 @@ body {
   ::view-transition-group(.rank-row) {
     animation-duration: 0.01ms !important;
   }
+
+  .standing-cheer-small,
+  .standing-cheer-big {
+    animation: none !important;
+  }
+}
+
+@keyframes standing-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes standing-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    border-color: var(--border);
+  }
+  40% {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  }
+}
+
+@keyframes standing-burst {
+  0% {
+    transform: scale(1) rotate(0deg);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  25% {
+    transform: scale(1.22) rotate(-3deg);
+    box-shadow:
+      0 0 0 4px var(--accent-soft),
+      0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+  }
+  55% {
+    transform: scale(1.08) rotate(2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    box-shadow: 0 0 0 0 transparent;
+    border-color: var(--border);
+  }
+}
+
+.standing-cheer-small {
+  animation:
+    standing-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    standing-glow 0.7s ease-out;
+}
+
+.standing-cheer-big {
+  animation: standing-burst 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.live-pulse {
+  position: relative;
+  display: inline-flex;
+  width: 0.55rem;
+  height: 0.55rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-pulse-dot {
+  position: relative;
+  z-index: 1;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: var(--accent);
+}
+
+.live-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid var(--accent);
+  opacity: 0;
+  animation: live-pulse-wave 1.6s ease-out infinite;
+}
+
+.live-pulse-ring-delay {
+  animation-delay: 0.8s;
+}
+
+@keyframes live-pulse-wave {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-pulse-ring {
+    animation: none;
+    opacity: 0;
+  }
+
+  .disco-ball-party .disco-ball-glow-bl,
+  .disco-ball-party .disco-ball-glow-tr {
+    animation: none;
+  }
+
+  .disco-ball-wrap {
+    transition: none;
+  }
+}
+
+@property --disco-glow-a {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ff4db3;
+}
+
+@property --disco-glow-b {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #00e5ff;
+}
+
+.disco-ball-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  --disco-glow-a: #ff4db3;
+  --disco-glow-b: #00e5ff;
+  transition:
+    --disco-glow-a 0.65s ease-in-out,
+    --disco-glow-b 0.65s ease-in-out;
+}
+
+.disco-ball-wrap canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.disco-ball-glow {
+  position: absolute;
+  inset: -16px;
+  border-radius: 9999px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 0;
+  filter: blur(10px);
+}
+
+/* Bottom-left wash */
+.disco-ball-glow-bl {
+  background: radial-gradient(
+    circle at 18% 82%,
+    color-mix(in srgb, var(--disco-glow-a) 95%, white) 0%,
+    color-mix(in srgb, var(--disco-glow-a) 55%, transparent) 38%,
+    transparent 68%
+  );
+}
+
+/* Top-right wash — overlaps into a two-tone bloom */
+.disco-ball-glow-tr {
+  background: radial-gradient(
+    circle at 82% 18%,
+    color-mix(in srgb, var(--disco-glow-b) 95%, white) 0%,
+    color-mix(in srgb, var(--disco-glow-b) 55%, transparent) 38%,
+    transparent 68%
+  );
+}
+
+.disco-ball-party .disco-ball-glow-bl {
+  opacity: 0.9;
+  animation: disco-bloom-breathe 1.4s ease-in-out infinite;
+}
+
+.disco-ball-party .disco-ball-glow-tr {
+  opacity: 0.85;
+  /* Opposite phase: rises as the other falls */
+  animation: disco-bloom-breathe 1.4s ease-in-out infinite;
+  animation-delay: -0.7s;
+}
+
+@keyframes disco-bloom-breathe {
+  0%,
+  100% {
+    transform: scale(0.88);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
 }
 

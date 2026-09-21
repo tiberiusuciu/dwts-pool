@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Crown, Home, Settings, Trophy } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { useT } from "@/components/i18n/locale-provider";
 import { DiscoBall } from "@/components/layout/disco-ball";
@@ -19,6 +20,9 @@ const NAV = [
   { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ] as const;
 
+/** Elim hit is 25 (current) or 50 (legacy) — treat that as a big cheer. */
+const BIG_CHEER_MIN = 25;
+
 function navIndex(pathname: string) {
   const exact = NAV.findIndex((item) => item.href === pathname);
   if (exact >= 0) return exact;
@@ -33,20 +37,48 @@ function StandingChip({
   standing: { rank: number; totalPoints: number } | null;
 }) {
   const t = useT();
+  const prevPointsRef = useRef<number | null>(null);
+  const [cheer, setCheer] = useState<"small" | "big" | null>(null);
+
+  useEffect(() => {
+    if (!standing) return;
+    const prev = prevPointsRef.current;
+    prevPointsRef.current = standing.totalPoints;
+    if (prev == null || standing.totalPoints <= prev) return;
+
+    const delta = standing.totalPoints - prev;
+    const next = delta >= BIG_CHEER_MIN ? "big" : "small";
+    setCheer(next);
+    const timer = setTimeout(
+      () => setCheer(null),
+      next === "big" ? 1600 : 900,
+    );
+    return () => clearTimeout(timer);
+  }, [standing]);
+
   if (!standing) return null;
+
   return (
     <Link
       href="/leaderboard"
       transitionTypes={["nav-forward"]}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background/70 px-2 py-1 text-[11px] font-medium tabular-nums transition-colors hover:border-accent/50 hover:text-accent sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
+      className={`standing-chip inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background/70 px-2 py-1 text-[11px] font-medium tabular-nums transition-colors hover:border-accent/50 hover:text-accent sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs ${
+        cheer === "big"
+          ? "standing-cheer-big"
+          : cheer === "small"
+            ? "standing-cheer-small"
+            : ""
+      }`}
       aria-label={t("nav.standingAria", {
         rank: standing.rank,
         points: standing.totalPoints,
       })}
     >
       <span className="text-accent">#{standing.rank}</span>
-      <span className="hidden text-muted sm:inline">·</span>
-      <span className="hidden sm:inline">
+      <span className={`text-muted ${cheer ? "inline" : "hidden sm:inline"}`}>
+        ·
+      </span>
+      <span className={cheer ? "inline" : "hidden sm:inline"}>
         {standing.totalPoints}
         <span className="ml-0.5 text-muted">{t("nav.pts")}</span>
       </span>
@@ -59,15 +91,44 @@ export function AppShell({
   standing,
   lockClock,
   prizePoolCents,
+  liveParty = false,
 }: {
   children: React.ReactNode;
   standing: { rank: number; totalPoints: number } | null;
   lockClock: LockClockProps | null;
   prizePoolCents: number;
+  liveParty?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const current = navIndex(pathname);
   const t = useT();
+
+  useEffect(() => {
+    let source: EventSource | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+    try {
+      source = new EventSource("/api/live/stream?scope=leaderboard");
+      source.onmessage = () => {
+        router.refresh();
+      };
+      source.onerror = () => {
+        source?.close();
+        source = null;
+        if (!pollTimer) {
+          pollTimer = setInterval(() => router.refresh(), 15_000);
+        }
+      };
+    } catch {
+      pollTimer = setInterval(() => router.refresh(), 15_000);
+    }
+
+    return () => {
+      source?.close();
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [router]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -82,7 +143,7 @@ export function AppShell({
             aria-label={t("nav.brand")}
             className="inline-flex shrink-0 items-center gap-2 font-display text-lg font-semibold tracking-tight md:justify-self-start"
           >
-            <DiscoBall className="shrink-0" />
+            <DiscoBall className="shrink-0" party={liveParty} />
             <span className="hidden whitespace-nowrap sm:inline">
               {t("nav.brand")}
             </span>
@@ -119,7 +180,6 @@ export function AppShell({
         </div>
       </header>
 
-      {/* Scroll here so the header never shifts when the scrollbar appears */}
       <main className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:px-6 md:pb-10 md:pt-8">
           {children}

@@ -106,6 +106,8 @@ export const fr = {
     statusUpcoming: "À venir",
     eliminated: "Éliminé",
     scoresLocked: "Les notes s'affichent après l'épisode.",
+    scoresLiveWaiting:
+      "Les notes apparaissent ici au fur et à mesure que l'hôte les enregistre.",
   },
   leaderboard: {
     title: "Classement",

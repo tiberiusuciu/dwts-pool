@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { useT } from "@/components/i18n/locale-provider";
@@ -17,12 +18,38 @@ function pickDefaultEpisodeId(episodes: EpisodeDTO[]): string {
   return upcoming?.id ?? episodes[0]?.id ?? "";
 }
 
+function LivePulse() {
+  return (
+    <span className="live-pulse" aria-hidden>
+      <span className="live-pulse-ring" />
+      <span className="live-pulse-ring live-pulse-ring-delay" />
+      <span className="live-pulse-dot" />
+    </span>
+  );
+}
+
 export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
   const t = useT();
+  const router = useRouter();
   const defaultId = useMemo(() => pickDefaultEpisodeId(episodes), [episodes]);
   const [selectedId, setSelectedId] = useState(defaultId);
   const selected = episodes.find((e) => e.id === selectedId) ?? episodes[0];
   const activeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const autoJumpedForLiveRef = useRef<string | null>(null);
+
+  const liveEpisodeId = useMemo(
+    () => episodes.find((e) => e.status === "LIVE")?.id ?? null,
+    [episodes],
+  );
+
+  const visibleResults = useMemo(() => {
+    if (!selected) return [];
+    if (selected.status === "PAST") return selected.results;
+    if (selected.status === "LIVE") {
+      return selected.results.filter((r) => r.judgeScore != null);
+    }
+    return [];
+  }, [selected]);
 
   const statusLabel = (status: EpisodeDTO["status"]) => {
     if (status === "PAST") return t("timeline.statusPast");
@@ -31,15 +58,80 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
   };
 
   useEffect(() => {
+    if (!liveEpisodeId) {
+      autoJumpedForLiveRef.current = null;
+      return;
+    }
+    if (autoJumpedForLiveRef.current === liveEpisodeId) return;
+    autoJumpedForLiveRef.current = liveEpisodeId;
+    setSelectedId((current) =>
+      current === liveEpisodeId ? current : liveEpisodeId,
+    );
+  }, [liveEpisodeId]);
+
+  useEffect(() => {
     activeBtnRef.current?.scrollIntoView({
       inline: "center",
       block: "nearest",
-      behavior: "auto",
+      behavior: "smooth",
     });
-  }, [defaultId]);
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (!liveEpisodeId) return;
+
+    let source: EventSource | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+    try {
+      source = new EventSource(
+        `/api/live/stream?episodeId=${encodeURIComponent(liveEpisodeId)}`,
+      );
+      source.onmessage = () => {
+        router.refresh();
+      };
+      source.onerror = () => {
+        source?.close();
+        source = null;
+        if (!pollTimer) {
+          pollTimer = setInterval(() => router.refresh(), 15_000);
+        }
+      };
+    } catch {
+      pollTimer = setInterval(() => router.refresh(), 15_000);
+    }
+
+    return () => {
+      source?.close();
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [liveEpisodeId, router]);
 
   if (!selected) {
     return <p className="text-sm text-muted">{t("timeline.empty")}</p>;
+  }
+
+  const showResults =
+    selected.status === "PAST" || selected.status === "LIVE";
+
+  function renderStatus(status: EpisodeDTO["status"], emphasize: boolean) {
+    if (status === "LIVE") {
+      return (
+        <span
+          className={`inline-flex items-center gap-1.5 ${
+            emphasize ? "text-accent" : "text-muted"
+          }`}
+        >
+          <LivePulse />
+          {statusLabel(status)}
+        </span>
+      );
+    }
+    return (
+      <span className={emphasize ? "text-accent" : "text-muted"}>
+        {statusLabel(status)}
+      </span>
+    );
   }
 
   return (
@@ -70,12 +162,8 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
                 <span className="block text-sm font-semibold">
                   {t("timeline.epChip", { number: episode.episodeNumber })}
                 </span>
-                <span
-                  className={`mt-0.5 block text-xs ${
-                    active ? "text-accent" : "text-muted"
-                  }`}
-                >
-                  {statusLabel(episode.status)}
+                <span className="mt-0.5 block text-xs">
+                  {renderStatus(episode.status, active)}
                 </span>
               </button>
             );
@@ -88,14 +176,14 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
           <h3 className="font-display text-base font-semibold">
             {selected.title}
           </h3>
-          <span className="shrink-0 text-xs text-muted">
-            {statusLabel(selected.status)}
+          <span className="shrink-0 text-xs">
+            {renderStatus(selected.status, selected.status === "LIVE")}
           </span>
         </div>
 
-        {selected.status === "PAST" ? (
+        {showResults && visibleResults.length > 0 ? (
           <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-            {selected.results.map((result) => (
+            {visibleResults.map((result) => (
               <li
                 key={result.id}
                 className="flex items-center justify-between gap-3 px-4 py-3"
@@ -131,7 +219,9 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
           </ul>
         ) : (
           <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
-            {t("timeline.scoresLocked")}
+            {selected.status === "LIVE"
+              ? t("timeline.scoresLiveWaiting")
+              : t("timeline.scoresLocked")}
           </p>
         )}
       </div>

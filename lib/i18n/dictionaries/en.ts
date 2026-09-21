@@ -103,6 +103,7 @@ export const en = {
     statusUpcoming: "Upcoming",
     eliminated: "Eliminated",
     scoresLocked: "Scores unlock after the episode.",
+    scoresLiveWaiting: "Scores appear here as the host locks them in.",
   },
   leaderboard: {
     title: "Leaderboard",

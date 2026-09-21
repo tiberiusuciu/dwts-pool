@@ -192,6 +192,15 @@ export async function calculateAndBroadcastPoints(): Promise<
 
   const updates = await recalculateAllPoints();
   publishLeaderboardUpdate();
+
+  const live = await prisma.episode.findFirst({
+    where: { status: EpisodeStatus.LIVE },
+    select: { id: true },
+  });
+  if (live) {
+    await broadcastEpisode(live.id);
+  }
+
   revalidatePath("/leaderboard");
   revalidatePath("/");
   revalidatePath("/admin");

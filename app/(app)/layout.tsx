@@ -35,6 +35,7 @@ export default async function AppLayout({
       standing={standing}
       lockClock={lockClock}
       prizePoolCents={prizePoolCents}
+      liveParty={featured?.status === EpisodeStatus.LIVE}
     >
       {children}
     </AppShell>
