@@ -57,7 +57,7 @@ export const fr = {
     helpLive: "Votre classement et votre choix d'élimination pour ce soir.",
     helpLocked: "Classement et élimination sont verrouillés pour cet épisode.",
     helpOpen:
-      "Classez du score le plus élevé au plus bas, et cochez votre éliminé. Verrouillage dans {lockLabel}.",
+      "Classez du score le plus élevé au plus bas, et cochez votre éliminé — enregistrement automatique. Verrouillage dans {lockLabel}.",
     bannerLiveTitle: "Épisode en direct",
     bannerLockedTitle: "Pronostics verrouillés",
     bannerLiveBody:
@@ -67,10 +67,7 @@ export const fr = {
     elim: "Élim.",
     moveUpAria: "Monter {name}",
     moveDownAria: "Descendre {name}",
-    save: "Enregistrer les pronostics",
     saving: "Enregistrement…",
-    errorLocked: "Les pronostics sont verrouillés",
-    errorNeedElim: "Choisissez qui sera éliminé selon vous",
     saved: "Pronostics enregistrés",
   },
   predict: {

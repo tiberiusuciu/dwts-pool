@@ -5,7 +5,9 @@ import { ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   startTransition,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
   ViewTransition,
@@ -16,6 +18,8 @@ import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { useT } from "@/components/i18n/locale-provider";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
 import type { CoupleOption } from "@/lib/couple";
+
+const SAVE_DEBOUNCE_MS = 700;
 
 function sameOrder(a: string[], b: string[]) {
   return a.length === b.length && a.every((id, i) => id === b[i]);
@@ -80,10 +84,76 @@ export function RankPredictionBoard({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startSaveTransition] = useTransition();
 
+  const orderRef = useRef(order);
+  const elimRef = useRef(eliminatedCoupleId);
+  const savedOrderRef = useRef(savedOrder);
+  const savedElimRef = useRef(savedEliminatedCoupleId);
+  const lockedRef = useRef(locked);
+  const saveGenRef = useRef(0);
+
+  orderRef.current = order;
+  elimRef.current = eliminatedCoupleId;
+  savedOrderRef.current = savedOrder;
+  savedElimRef.current = savedEliminatedCoupleId;
+  lockedRef.current = locked;
+
   const dirty =
     eliminatedCoupleId !== savedEliminatedCoupleId ||
     !sameOrder(order, savedOrder);
-  const canSave = Boolean(dirty && eliminatedCoupleId && !locked && !pending);
+
+  function persist() {
+    if (lockedRef.current) return;
+    const rankOrder = orderRef.current;
+    const elim = elimRef.current;
+    if (
+      elim === savedElimRef.current &&
+      sameOrder(rankOrder, savedOrderRef.current)
+    ) {
+      return;
+    }
+
+    const gen = ++saveGenRef.current;
+    setError(null);
+    startSaveTransition(async () => {
+      const result = await savePredictions({
+        episodeId,
+        rankOrder,
+        ...(elim ? { eliminatedCoupleId: elim } : {}),
+      });
+      if (gen !== saveGenRef.current) return;
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSavedOrder(rankOrder);
+      setSavedEliminatedCoupleId(elim);
+      savedOrderRef.current = rankOrder;
+      savedElimRef.current = elim;
+      setMessage(t("ranks.saved"));
+      router.refresh();
+    });
+  }
+
+  useEffect(() => {
+    if (locked || !dirty) return;
+    const timer = setTimeout(() => persist(), SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [order, eliminatedCoupleId, dirty, locked, episodeId]);
+
+  useEffect(() => {
+    function flush() {
+      persist();
+    }
+    function onVisibility() {
+      if (document.visibilityState === "hidden") flush();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [episodeId]);
 
   function move(index: number, delta: number) {
     if (locked) return;
@@ -100,34 +170,11 @@ export function RankPredictionBoard({
     });
   }
 
-  function onSave() {
-    setError(null);
-    setMessage(null);
-    if (locked) {
-      setError(t("ranks.errorLocked"));
-      return;
-    }
-    if (!eliminatedCoupleId) {
-      setError(t("ranks.errorNeedElim"));
-      return;
-    }
-    if (!canSave) return;
-    startSaveTransition(async () => {
-      const result = await savePredictions({
-        episodeId,
-        rankOrder: order,
-        eliminatedCoupleId,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setSavedOrder(order);
-      setSavedEliminatedCoupleId(eliminatedCoupleId);
-      setMessage(t("ranks.saved"));
-      router.refresh();
-    });
-  }
+  const statusText = locked
+    ? null
+    : pending || dirty
+      ? t("ranks.saving")
+      : message;
 
   return (
     <section className="mt-8 space-y-4">
@@ -209,7 +256,7 @@ export function RankPredictionBoard({
                     name="elim-pick"
                     className="size-4 accent-[var(--accent)]"
                     checked={isElimPick}
-                    disabled={locked || pending}
+                    disabled={locked}
                     onChange={() => setEliminatedCoupleId(id)}
                   />
                   {t("ranks.elim")}
@@ -221,7 +268,7 @@ export function RankPredictionBoard({
                       aria-label={t("ranks.moveUpAria", {
                         name: couple.celebrityName,
                       })}
-                      disabled={index === 0 || pending}
+                      disabled={index === 0}
                       onClick={() => move(index, -1)}
                       className="flex size-11 items-center justify-center rounded-xl border border-border disabled:opacity-40"
                     >
@@ -232,7 +279,7 @@ export function RankPredictionBoard({
                       aria-label={t("ranks.moveDownAria", {
                         name: couple.celebrityName,
                       })}
-                      disabled={index === order.length - 1 || pending}
+                      disabled={index === order.length - 1}
                       onClick={() => move(index, 1)}
                       className="flex size-11 items-center justify-center rounded-xl border border-border disabled:opacity-40"
                     >
@@ -246,19 +293,12 @@ export function RankPredictionBoard({
         })}
       </ul>
 
-      {locked ? null : (
-        <button
-          type="button"
-          disabled={!canSave}
-          onClick={onSave}
-          className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
-        >
-          {pending ? t("ranks.saving") : t("ranks.save")}
-        </button>
-      )}
-
+      {statusText ? (
+        <p className="text-sm text-muted" role="status">
+          {statusText}
+        </p>
+      ) : null}
       {error ? <p className="text-sm text-accent">{error}</p> : null}
-      {message ? <p className="text-sm text-muted">{message}</p> : null}
     </section>
   );
 }

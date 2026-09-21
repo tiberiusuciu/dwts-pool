@@ -54,7 +54,7 @@ export const en = {
     helpLive: "Your locked rank and elim pick for tonight.",
     helpLocked: "Rank and elim picks are locked for this episode.",
     helpOpen:
-      "Rank highest → lowest expected score, and mark your elim pick. Locks in {lockLabel}.",
+      "Rank highest → lowest expected score, and mark your elim pick — saves automatically. Locks in {lockLabel}.",
     bannerLiveTitle: "Episode is live",
     bannerLockedTitle: "Predictions locked",
     bannerLiveBody:
@@ -64,10 +64,7 @@ export const en = {
     elim: "Elim",
     moveUpAria: "Move {name} up",
     moveDownAria: "Move {name} down",
-    save: "Save predictions",
     saving: "Saving…",
-    errorLocked: "Predictions are locked",
-    errorNeedElim: "Pick who you think gets eliminated",
     saved: "Predictions saved",
   },
   predict: {
