@@ -176,3 +176,11 @@ model PredictionEvent {
   @@index([userId, createdAt])
   @@index([userId, episodeId, createdAt])
 }
+
+/** Singleton app-wide settings (id is always "default"). */
+model AppSettings {
+  id             String   @id @default("default")
+  /** Prize pool total in CAD cents. */
+  prizePoolCents Int      @default(0)
+  updatedAt      DateTime @default(now()) @updatedAt
+}

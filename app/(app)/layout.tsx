@@ -2,6 +2,7 @@ import { EpisodeStatus } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { AppShell } from "@/components/layout/app-shell";
+import { getPrizePoolCents } from "@/lib/app-settings";
 import {
   getEpisodeLockAt,
   getPredictableEpisode,
@@ -16,9 +17,10 @@ export default async function AppLayout({
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [standing, upcoming] = await Promise.all([
+  const [standing, upcoming, prizePoolCents] = await Promise.all([
     userId ? getMyStanding(userId) : null,
     getPredictableEpisode(),
+    getPrizePoolCents(),
   ]);
 
   const lockClock = upcoming
@@ -29,7 +31,11 @@ export default async function AppLayout({
     : null;
 
   return (
-    <AppShell standing={standing} lockClock={lockClock}>
+    <AppShell
+      standing={standing}
+      lockClock={lockClock}
+      prizePoolCents={prizePoolCents}
+    >
       {children}
     </AppShell>
   );

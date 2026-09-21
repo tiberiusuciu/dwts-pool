@@ -276,6 +276,12 @@ async function main() {
   console.log(
     `Seeded Season 35: ${couples.length} couples, ${episodes.length} episodes (finale Ep ${EPISODES.length}).`,
   );
+
+  await prisma.appSettings.upsert({
+    where: { id: "default" },
+    create: { id: "default", prizePoolCents: 0 },
+    update: {},
+  });
 }
 
 main()

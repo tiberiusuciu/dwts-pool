@@ -8,6 +8,7 @@ import {
   LockCountdownChip,
   type LockClockProps,
 } from "@/components/layout/lock-countdown-chip";
+import { PrizePoolChip } from "@/components/layout/prize-pool-chip";
 
 const NAV = [
   { href: "/", label: "Home", icon: Home },
@@ -51,10 +52,12 @@ export function AppShell({
   children,
   standing,
   lockClock,
+  prizePoolCents,
 }: {
   children: React.ReactNode;
   standing: { rank: number; totalPoints: number } | null;
   lockClock: LockClockProps | null;
+  prizePoolCents: number;
 }) {
   const pathname = usePathname();
   const current = navIndex(pathname);
@@ -97,7 +100,8 @@ export function AppShell({
             })}
           </nav>
 
-          <div className="flex min-w-0 items-center justify-end gap-2">
+          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
+            <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
             <StandingChip standing={standing} />
           </div>
