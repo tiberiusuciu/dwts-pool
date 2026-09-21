@@ -91,6 +91,8 @@ model Couple {
   celebrityName       String
   proName             String
   imageUrl            String?
+  /** Optional headshot for the pro partner. */
+  proImageUrl         String?
   status              CoupleStatus @default(ACTIVE)
   eliminatedEpisodeId String?
   createdAt           DateTime     @default(now())

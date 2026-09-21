@@ -12,7 +12,8 @@ import {
   upsertLiveResult,
 } from "@/app/(app)/admin/live/actions";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
-import { SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/predictions";
+import { CoupleAvatar } from "@/components/couples/couple-avatar";
+import { SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
 
 type EpisodeStatusValue = "PAST" | "LIVE" | "UPCOMING";
 
@@ -20,6 +21,8 @@ type CoupleRow = {
   id: string;
   celebrityName: string;
   proName: string;
+  imageUrl: string | null;
+  proImageUrl: string | null;
   judgeScore: number | null;
   isEliminated: boolean;
 };
@@ -263,9 +266,19 @@ export function AdminLiveForm({
               key={row.id}
               className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center"
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{row.celebrityName}</p>
-                <p className="truncate text-xs text-muted">& {row.proName}</p>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <CoupleAvatar
+                  celebrityName={row.celebrityName}
+                  proName={row.proName}
+                  imageUrl={row.imageUrl}
+                  proImageUrl={row.proImageUrl}
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {row.celebrityName}
+                  </p>
+                  <p className="truncate text-xs text-muted">& {row.proName}</p>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button

@@ -1,19 +1,22 @@
+import "server-only";
+
 import {
   CoupleStatus,
   EpisodeStatus,
   PredictionKind,
-  type Couple,
   type Episode,
 } from "@prisma/client";
 
+import type { CoupleOption } from "@/lib/couple";
+import { formatLockCountdownFromMs } from "@/lib/prediction-lock";
 import { prisma } from "@/lib/prisma";
 
-/** Admin score entry bounds (official paddle totals). */
-export const SCORE_MIN = 3;
-export const SCORE_MAX = 30;
-export const SCORE_DEFAULT = 18;
-
-export type CoupleOption = Pick<Couple, "id" | "celebrityName" | "proName">;
+export type { CoupleOption } from "@/lib/couple";
+export {
+  formatLockCountdownFromMs,
+  isLockUrgent,
+} from "@/lib/prediction-lock";
+export { clampScore, SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
 
 export type UserPredictionState = {
   seasonWinnerCoupleId: string | null;
@@ -70,42 +73,15 @@ export function isEpisodeLocked(
   return now.getTime() >= getEpisodeLockAt(episode).getTime();
 }
 
-/** Countdown label from a lock instant (ms since epoch). */
-export function formatLockCountdownFromMs(
-  lockAtMs: number,
-  nowMs = Date.now(),
-): string {
-  if (nowMs >= lockAtMs) return "Locked";
-  const ms = lockAtMs - nowMs;
-  const totalHours = Math.floor(ms / 3_600_000);
-  const days = Math.floor(totalHours / 24);
-
-  // ≥ 24h → days + hours
-  if (days >= 1) {
-    return `${days}d ${totalHours % 24}h`;
-  }
-
-  // < 24h → hours, minutes, seconds
-  const hours = totalHours;
-  const mins = Math.floor((ms % 3_600_000) / 60_000);
-  const secs = Math.floor((ms % 60_000) / 1000);
-  return `${hours}h ${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
-}
-
-export function isLockUrgent(
-  lockAtMs: number,
-  nowMs = Date.now(),
-): boolean {
-  const remaining = lockAtMs - nowMs;
-  return remaining > 0 && remaining < 12 * 3_600_000;
-}
-
 export function formatLockCountdown(
   episode: Pick<Episode, "airDate" | "status">,
   now = new Date(),
 ): string {
   if (isEpisodeLocked(episode, now)) return "Locked";
-  return formatLockCountdownFromMs(getEpisodeLockAt(episode).getTime(), now.getTime());
+  return formatLockCountdownFromMs(
+    getEpisodeLockAt(episode).getTime(),
+    now.getTime(),
+  );
 }
 
 export async function getPredictableEpisode() {
@@ -129,7 +105,13 @@ export async function getActiveCouples(): Promise<CoupleOption[]> {
   return prisma.couple.findMany({
     where: { status: CoupleStatus.ACTIVE },
     orderBy: { celebrityName: "asc" },
-    select: { id: true, celebrityName: true, proName: true },
+    select: {
+      id: true,
+      celebrityName: true,
+      proName: true,
+      imageUrl: true,
+      proImageUrl: true,
+    },
   });
 }
 
@@ -184,8 +166,4 @@ export async function getUserPredictions(
 
 export function defaultRankOrder(couples: CoupleOption[]): string[] {
   return couples.map((c) => c.id);
-}
-
-export function clampScore(value: number) {
-  return Math.min(SCORE_MAX, Math.max(SCORE_MIN, Math.round(value)));
 }

@@ -9,7 +9,7 @@ import {
   publishLeaderboardUpdate,
   publishLiveUpdate,
 } from "@/lib/live-bus";
-import { clampScore, SCORE_MAX, SCORE_MIN } from "@/lib/predictions";
+import { clampScore, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
 import { prisma } from "@/lib/prisma";
 import { recalculateAllPoints } from "@/lib/scoring";
 

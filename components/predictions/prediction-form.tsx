@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { savePredictions } from "@/app/(app)/predict/actions";
+import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
-import type { CoupleOption } from "@/lib/predictions";
+import type { CoupleOption } from "@/lib/couple";
 import {
   SEASON_WINNER_BASE,
   SEASON_WINNER_PER_WEEK,
@@ -43,6 +44,12 @@ function CouplePickList({
                 checked={selected}
                 onChange={() => onChange(couple.id)}
                 disabled={disabled}
+              />
+              <CoupleAvatar
+                celebrityName={couple.celebrityName}
+                proName={couple.proName}
+                imageUrl={couple.imageUrl}
+                proImageUrl={couple.proImageUrl}
               />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">

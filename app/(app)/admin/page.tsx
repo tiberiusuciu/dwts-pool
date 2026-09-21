@@ -74,7 +74,13 @@ export default async function AdminPage({
 
   const couples = await prisma.couple.findMany({
     orderBy: { celebrityName: "asc" },
-    select: { id: true, celebrityName: true, proName: true },
+    select: {
+      id: true,
+      celebrityName: true,
+      proName: true,
+      imageUrl: true,
+      proImageUrl: true,
+    },
   });
 
   return (
@@ -100,6 +106,8 @@ export default async function AdminPage({
             id: c.id,
             celebrityName: c.celebrityName,
             proName: c.proName,
+            imageUrl: c.imageUrl,
+            proImageUrl: c.proImageUrl,
             judgeScore: result?.judgeScore ?? null,
             isEliminated: result?.isEliminated ?? false,
           };

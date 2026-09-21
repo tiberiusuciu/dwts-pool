@@ -10,6 +10,8 @@ export type EpisodeResultDTO = {
     id: string;
     celebrityName: string;
     proName: string;
+    imageUrl: string | null;
+    proImageUrl: string | null;
   };
 };
 
@@ -33,6 +35,8 @@ export async function getEpisodesWithResults(): Promise<EpisodeDTO[]> {
               id: true,
               celebrityName: true,
               proName: true,
+              imageUrl: true,
+              proImageUrl: true,
             },
           },
         },

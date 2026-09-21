@@ -11,8 +11,9 @@ import {
 } from "react";
 
 import { savePredictions } from "@/app/(app)/predict/actions";
+import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
-import type { CoupleOption } from "@/lib/predictions";
+import type { CoupleOption } from "@/lib/couple";
 
 export function RankPredictionBoard({
   episodeId,
@@ -159,6 +160,12 @@ export function RankPredictionBoard({
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold tabular-nums text-muted">
                   {index + 1}
                 </span>
+                <CoupleAvatar
+                  celebrityName={couple.celebrityName}
+                  proName={couple.proName}
+                  imageUrl={couple.imageUrl}
+                  proImageUrl={couple.proImageUrl}
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {couple.celebrityName}

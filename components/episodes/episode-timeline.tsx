@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import type { EpisodeDTO } from "@/lib/episodes";
 
 const STATUS_LABEL: Record<EpisodeDTO["status"], string> = {
@@ -102,13 +103,21 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
                 key={result.id}
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {result.couple.celebrityName}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    & {result.couple.proName}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <CoupleAvatar
+                    celebrityName={result.couple.celebrityName}
+                    proName={result.couple.proName}
+                    imageUrl={result.couple.imageUrl}
+                    proImageUrl={result.couple.proImageUrl}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {result.couple.celebrityName}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      & {result.couple.proName}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {result.isEliminated ? (

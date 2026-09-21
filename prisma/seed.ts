@@ -10,6 +10,8 @@ const prisma = new PrismaClient();
 type CoupleSeed = {
   celebrityName: string;
   proName: string;
+  imageUrl?: string;
+  proImageUrl?: string;
 };
 
 type NightResult = {
@@ -18,23 +20,104 @@ type NightResult = {
   isEliminated?: boolean;
 };
 
+/** Local headshots in /public/couples (320px JPEG). */
 const COUPLES: CoupleSeed[] = [
-  { celebrityName: "Jackson Olson", proName: "Emma Slater" },
-  { celebrityName: "Tyler Cameron", proName: "Sharna Burgess" },
-  { celebrityName: "Guillermo Rodriguez", proName: "Witney Carson" },
-  { celebrityName: "Ezra Frech", proName: "Daniella Karagach" },
-  { celebrityName: "Connor Wood", proName: "Rylee Arnold" },
-  { celebrityName: "Taylor Hanson", proName: "Britt Stewart" },
-  { celebrityName: "Harry Shum Jr.", proName: "Jenna Johnson" },
-  { celebrityName: "Conner Leavitt", proName: "Adele Zaikman" },
-  { celebrityName: "Tatyana Ali", proName: "Jan Ravnik" },
-  { celebrityName: "Amber Glenn", proName: "Pasha Pashkov" },
-  { celebrityName: "Ciara Miller", proName: "Brandon Armstrong" },
-  { celebrityName: "Giada De Laurentiis", proName: "Alan Bersten" },
-  { celebrityName: "Julia Stiles", proName: "Ezra Sosa" },
-  { celebrityName: "Maura Higgins", proName: "Mark Ballas" },
-  { celebrityName: "Sarah Jane Nader", proName: "Hailey Bills" },
-  { celebrityName: "Jenna Dewan", proName: "Val Chmerkovskiy" },
+  {
+    celebrityName: "Jackson Olson",
+    proName: "Emma Slater",
+    imageUrl: "/couples/jackson-olson.jpg?v=4",
+    proImageUrl: "/couples/emma-slater.jpg?v=4",
+  },
+  {
+    celebrityName: "Tyler Cameron",
+    proName: "Sharna Burgess",
+    imageUrl: "/couples/tyler-cameron.jpg?v=4",
+    proImageUrl: "/couples/sharna-burgess.jpg?v=5",
+  },
+  {
+    celebrityName: "Guillermo Rodriguez",
+    proName: "Witney Carson",
+    imageUrl: "/couples/guillermo-rodriguez.jpg?v=4",
+    proImageUrl: "/couples/witney-carson.jpg?v=4",
+  },
+  {
+    celebrityName: "Ezra Frech",
+    proName: "Daniella Karagach",
+    imageUrl: "/couples/ezra-frech.jpg?v=4",
+    proImageUrl: "/couples/daniella-karagach.jpg?v=4",
+  },
+  {
+    celebrityName: "Connor Wood",
+    proName: "Rylee Arnold",
+    imageUrl: "/couples/connor-wood.jpg?v=4",
+    proImageUrl: "/couples/rylee-arnold.jpg?v=4",
+  },
+  {
+    celebrityName: "Taylor Hanson",
+    proName: "Britt Stewart",
+    imageUrl: "/couples/taylor-hanson.jpg?v=4",
+    proImageUrl: "/couples/britt-stewart.jpg?v=4",
+  },
+  {
+    celebrityName: "Harry Shum Jr.",
+    proName: "Jenna Johnson",
+    imageUrl: "/couples/harry-shum-jr.jpg?v=4",
+    proImageUrl: "/couples/jenna-johnson.jpg?v=4",
+  },
+  {
+    celebrityName: "Conner Leavitt",
+    proName: "Adele Zaikman",
+    imageUrl: "/couples/conner-leavitt.jpg?v=4",
+    proImageUrl: "/couples/adele-zaikman.jpg?v=4",
+  },
+  {
+    celebrityName: "Tatyana Ali",
+    proName: "Jan Ravnik",
+    imageUrl: "/couples/tatyana-ali.jpg?v=4",
+    proImageUrl: "/couples/jan-ravnik.jpg?v=4",
+  },
+  {
+    celebrityName: "Amber Glenn",
+    proName: "Pasha Pashkov",
+    imageUrl: "/couples/amber-glenn.jpg?v=4",
+    proImageUrl: "/couples/pasha-pashkov.jpg?v=4",
+  },
+  {
+    celebrityName: "Ciara Miller",
+    proName: "Brandon Armstrong",
+    imageUrl: "/couples/ciara-miller.jpg?v=4",
+    proImageUrl: "/couples/brandon-armstrong.jpg?v=4",
+  },
+  {
+    celebrityName: "Giada De Laurentiis",
+    proName: "Alan Bersten",
+    imageUrl: "/couples/giada-de-laurentiis.jpg?v=4",
+    proImageUrl: "/couples/alan-bersten.jpg?v=4",
+  },
+  {
+    celebrityName: "Julia Stiles",
+    proName: "Ezra Sosa",
+    imageUrl: "/couples/julia-stiles.jpg?v=4",
+    proImageUrl: "/couples/ezra-sosa.jpg?v=4",
+  },
+  {
+    celebrityName: "Maura Higgins",
+    proName: "Mark Ballas",
+    imageUrl: "/couples/maura-higgins.jpg?v=4",
+    proImageUrl: "/couples/mark-ballas.jpg?v=4",
+  },
+  {
+    celebrityName: "Sarah Jane Nader",
+    proName: "Hailey Bills",
+    imageUrl: "/couples/sarah-jane-nader.jpg?v=4",
+    proImageUrl: "/couples/hailey-bills.jpg?v=4",
+  },
+  {
+    celebrityName: "Jenna Dewan",
+    proName: "Val Chmerkovskiy",
+    imageUrl: "/couples/jenna-dewan.jpg?v=4",
+    proImageUrl: "/couples/val-chmerkovskiy.jpg?v=4",
+  },
 ];
 
 const EP1_RESULTS: NightResult[] = [
@@ -63,10 +146,18 @@ async function upsertCouple(seed: CoupleSeed) {
   const existing = await prisma.couple.findFirst({
     where: { celebrityName: seed.celebrityName, proName: seed.proName },
   });
+  const images = {
+    imageUrl: seed.imageUrl ?? null,
+    proImageUrl: seed.proImageUrl ?? null,
+  };
   if (existing) {
     return prisma.couple.update({
       where: { id: existing.id },
-      data: { status: CoupleStatus.ACTIVE, eliminatedEpisodeId: null },
+      data: {
+        status: CoupleStatus.ACTIVE,
+        eliminatedEpisodeId: null,
+        ...images,
+      },
     });
   }
   return prisma.couple.create({
@@ -74,6 +165,7 @@ async function upsertCouple(seed: CoupleSeed) {
       celebrityName: seed.celebrityName,
       proName: seed.proName,
       status: CoupleStatus.ACTIVE,
+      ...images,
     },
   });
 }

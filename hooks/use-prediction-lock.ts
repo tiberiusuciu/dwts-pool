@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   formatLockCountdownFromMs,
   isLockUrgent,
-} from "@/lib/predictions";
+} from "@/lib/prediction-lock";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
