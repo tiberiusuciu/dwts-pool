@@ -3,13 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
+import { useT } from "@/components/i18n/locale-provider";
 import type { EpisodeDTO } from "@/lib/episodes";
-
-const STATUS_LABEL: Record<EpisodeDTO["status"], string> = {
-  PAST: "Past",
-  LIVE: "Live",
-  UPCOMING: "Upcoming",
-};
 
 function pickDefaultEpisodeId(episodes: EpisodeDTO[]): string {
   const live = episodes.find((e) => e.status === "LIVE");
@@ -22,12 +17,18 @@ function pickDefaultEpisodeId(episodes: EpisodeDTO[]): string {
   return upcoming?.id ?? episodes[0]?.id ?? "";
 }
 
-
 export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
+  const t = useT();
   const defaultId = useMemo(() => pickDefaultEpisodeId(episodes), [episodes]);
   const [selectedId, setSelectedId] = useState(defaultId);
   const selected = episodes.find((e) => e.id === selectedId) ?? episodes[0];
   const activeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const statusLabel = (status: EpisodeDTO["status"]) => {
+    if (status === "PAST") return t("timeline.statusPast");
+    if (status === "LIVE") return t("timeline.statusLive");
+    return t("timeline.statusUpcoming");
+  };
 
   useEffect(() => {
     activeBtnRef.current?.scrollIntoView({
@@ -38,20 +39,16 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
   }, [defaultId]);
 
   if (!selected) {
-    return (
-      <p className="text-sm text-muted">No episodes yet. Run the season seed.</p>
-    );
+    return <p className="text-sm text-muted">{t("timeline.empty")}</p>;
   }
 
   return (
     <section className="mt-8 space-y-6">
       <div>
         <h2 className="font-display text-lg font-semibold tracking-tight">
-          Episode timeline
+          {t("timeline.title")}
         </h2>
-        <p className="mt-1 text-sm text-muted">
-          Tap an episode to review judge scores.
-        </p>
+        <p className="mt-1 text-sm text-muted">{t("timeline.subtitle")}</p>
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -71,14 +68,14 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
                 }`}
               >
                 <span className="block text-sm font-semibold">
-                  Ep {episode.episodeNumber}
+                  {t("timeline.epChip", { number: episode.episodeNumber })}
                 </span>
                 <span
                   className={`mt-0.5 block text-xs ${
                     active ? "text-accent" : "text-muted"
                   }`}
                 >
-                  {STATUS_LABEL[episode.status]}
+                  {statusLabel(episode.status)}
                 </span>
               </button>
             );
@@ -92,7 +89,7 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
             {selected.title}
           </h3>
           <span className="shrink-0 text-xs text-muted">
-            {STATUS_LABEL[selected.status]}
+            {statusLabel(selected.status)}
           </span>
         </div>
 
@@ -122,7 +119,7 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
                 <div className="flex shrink-0 items-center gap-2">
                   {result.isEliminated ? (
                     <span className="rounded-md bg-accent-soft px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-accent">
-                      Eliminated
+                      {t("timeline.eliminated")}
                     </span>
                   ) : null}
                   <span className="tabular-nums text-sm font-semibold">
@@ -134,7 +131,7 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
           </ul>
         ) : (
           <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
-            Scores unlock after the episode.
+            {t("timeline.scoresLocked")}
           </p>
         )}
       </div>

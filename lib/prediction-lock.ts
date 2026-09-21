@@ -2,14 +2,16 @@
 export function formatLockCountdownFromMs(
   lockAtMs: number,
   nowMs = Date.now(),
+  opts?: { lockedLabel?: string; dayUnit?: string },
 ): string {
-  if (nowMs >= lockAtMs) return "Locked";
+  if (nowMs >= lockAtMs) return opts?.lockedLabel ?? "Locked";
   const ms = lockAtMs - nowMs;
   const totalHours = Math.floor(ms / 3_600_000);
   const days = Math.floor(totalHours / 24);
+  const dayUnit = opts?.dayUnit ?? "d";
 
   if (days >= 1) {
-    return `${days}d ${totalHours % 24}h`;
+    return `${days}${dayUnit} ${totalHours % 24}h`;
   }
 
   const hours = totalHours;

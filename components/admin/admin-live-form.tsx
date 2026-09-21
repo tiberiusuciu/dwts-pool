@@ -13,6 +13,7 @@ import {
 } from "@/app/(app)/admin/live/actions";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
+import { useT } from "@/components/i18n/locale-provider";
 import { SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
 
 type EpisodeStatusValue = "PAST" | "LIVE" | "UPCOMING";
@@ -44,6 +45,7 @@ export function AdminLiveForm({
   initialEpisodeId: string;
   couples: CoupleRow[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [episodeId, setEpisodeId] = useState(initialEpisodeId);
   const [rows, setRows] = useState(couples);
@@ -101,7 +103,7 @@ export function AdminLiveForm({
         setError(result.error);
         return;
       }
-      setMessage(`Saved ${row.celebrityName}`);
+      setMessage(t("admin.savedCouple", { name: row.celebrityName }));
       router.refresh();
     });
   }
@@ -115,7 +117,7 @@ export function AdminLiveForm({
         setError(result.error);
         return;
       }
-      setMessage(`Episode marked ${status}`);
+      setMessage(t("admin.markedStatus", { status }));
       router.refresh();
     });
   }
@@ -131,7 +133,7 @@ export function AdminLiveForm({
         setIsFinale(!next);
         return;
       }
-      setMessage(next ? "Marked as season finale" : "Finale flag cleared");
+      setMessage(next ? t("admin.markedFinale") : t("admin.finaleCleared"));
       router.refresh();
     });
   }
@@ -145,7 +147,9 @@ export function AdminLiveForm({
         setError(result.error);
         return;
       }
-      setMessage(`Points calculated for ${result.totals ?? 0} players`);
+      setMessage(
+        t("admin.pointsCalculated", { count: result.totals ?? 0 }),
+      );
       router.refresh();
     });
   }
@@ -172,7 +176,7 @@ export function AdminLiveForm({
         })),
       );
       setClearOpen(false);
-      setMessage("Episode results cleared");
+      setMessage(t("admin.resultsCleared"));
       router.refresh();
     });
   }
@@ -181,15 +185,15 @@ export function AdminLiveForm({
     <div className="space-y-8">
       <section className="space-y-6">
         <div>
-          <h2 className="font-display text-lg font-semibold">Live results</h2>
-          <p className="mt-1 text-sm text-muted">
-            Enter scores during the broadcast, then calculate pool points.
-          </p>
+          <h2 className="font-display text-lg font-semibold">
+            {t("admin.liveTitle")}
+          </h2>
+          <p className="mt-1 text-sm text-muted">{t("admin.liveSubtitle")}</p>
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
           <label className="block min-w-[12rem] flex-1 space-y-1.5">
-            <span className="text-sm font-medium">Episode</span>
+            <span className="text-sm font-medium">{t("admin.episode")}</span>
             <select
               value={episodeId}
               onChange={(e) => onEpisodeChange(e.target.value)}
@@ -197,8 +201,17 @@ export function AdminLiveForm({
             >
               {episodes.map((ep) => (
                 <option key={ep.id} value={ep.id}>
-                  Ep {ep.episodeNumber} — {ep.title} ({ep.status}
-                  {ep.isFinale ? ", finale" : ""})
+                  {ep.isFinale
+                    ? t("admin.episodeOptionFinale", {
+                        number: ep.episodeNumber,
+                        title: ep.title,
+                        status: ep.status,
+                      })
+                    : t("admin.episodeOption", {
+                        number: ep.episodeNumber,
+                        title: ep.title,
+                        status: ep.status,
+                      })}
                 </option>
               ))}
             </select>
@@ -210,7 +223,7 @@ export function AdminLiveForm({
               onClick={() => setStatus("LIVE")}
               className="h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
             >
-              Go live
+              {t("admin.goLive")}
             </button>
             <button
               type="button"
@@ -218,7 +231,7 @@ export function AdminLiveForm({
               onClick={() => setStatus("PAST")}
               className="h-11 rounded-xl border border-border px-4 text-sm font-medium hover:bg-surface disabled:opacity-60"
             >
-              Mark past
+              {t("admin.markPast")}
             </button>
             <button
               type="button"
@@ -226,14 +239,14 @@ export function AdminLiveForm({
               onClick={() => setStatus("UPCOMING")}
               className="h-11 rounded-xl border border-border px-4 text-sm font-medium hover:bg-surface disabled:opacity-60"
             >
-              Upcoming
+              {t("admin.upcoming")}
             </button>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted">
-            Status:{" "}
+            {t("admin.status")}{" "}
             <span className="font-medium text-foreground">
               {episode?.status ?? "—"}
             </span>
@@ -247,7 +260,7 @@ export function AdminLiveForm({
                 onChange={(e) => toggleFinale(e.target.checked)}
                 className="size-4 accent-[var(--accent)]"
               />
-              Season finale
+              {t("admin.seasonFinale")}
             </label>
             <button
               type="button"
@@ -255,7 +268,7 @@ export function AdminLiveForm({
               onClick={clearResults}
               className="h-9 rounded-xl border border-border px-3 text-xs font-medium text-muted hover:border-accent hover:text-accent disabled:opacity-60"
             >
-              Clear results
+              {t("admin.clearResults")}
             </button>
           </div>
         </div>
@@ -283,7 +296,9 @@ export function AdminLiveForm({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  aria-label={`Decrease ${row.celebrityName}`}
+                  aria-label={t("admin.decreaseAria", {
+                    name: row.celebrityName,
+                  })}
                   onClick={() => bump(row.id, -1)}
                   className="flex size-11 items-center justify-center rounded-xl border border-border"
                 >
@@ -294,7 +309,9 @@ export function AdminLiveForm({
                 </span>
                 <button
                   type="button"
-                  aria-label={`Increase ${row.celebrityName}`}
+                  aria-label={t("admin.increaseAria", {
+                    name: row.celebrityName,
+                  })}
                   onClick={() => bump(row.id, 1)}
                   className="flex size-11 items-center justify-center rounded-xl border border-border"
                 >
@@ -307,7 +324,7 @@ export function AdminLiveForm({
                     onChange={() => toggleElim(row.id)}
                     className="size-4 accent-[var(--accent)]"
                   />
-                  Elim
+                  {t("admin.elim")}
                 </label>
                 <button
                   type="button"
@@ -315,7 +332,7 @@ export function AdminLiveForm({
                   onClick={() => saveRow(row.id)}
                   className="h-11 rounded-xl bg-foreground px-3 text-sm font-medium text-surface disabled:opacity-60"
                 >
-                  Save
+                  {t("admin.save")}
                 </button>
               </div>
             </li>
@@ -324,18 +341,17 @@ export function AdminLiveForm({
       </section>
 
       <section className="space-y-3 rounded-2xl border border-border bg-surface p-4">
-        <h2 className="font-display text-lg font-semibold">Calculate points</h2>
-        <p className="text-sm text-muted">
-          Recompute every player&apos;s total from past results and push a live
-          leaderboard update.
-        </p>
+        <h2 className="font-display text-lg font-semibold">
+          {t("admin.calculateTitle")}
+        </h2>
+        <p className="text-sm text-muted">{t("admin.calculateSubtitle")}</p>
         <button
           type="button"
           disabled={pending}
           onClick={calculatePoints}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60 sm:w-auto sm:px-6"
         >
-          {pending ? "Working…" : "Calculate points & broadcast"}
+          {pending ? t("admin.working") : t("admin.calculateCta")}
         </button>
       </section>
 
@@ -344,13 +360,16 @@ export function AdminLiveForm({
 
       <ConfirmModal
         open={clearOpen}
-        title="Clear episode results?"
+        title={t("admin.clearModalTitle")}
         description={
           episode
-            ? `This removes all scores and elimination flags for Ep ${episode.episodeNumber} — ${episode.title}. Couples eliminated on this episode become active again, and pool points are recalculated.`
-            : "This removes all scores and elimination flags for this episode. Couples eliminated here become active again, and pool points are recalculated."
+            ? t("admin.clearModalDesc", {
+                number: episode.episodeNumber,
+                title: episode.title,
+              })
+            : t("admin.clearModalDescFallback")
         }
-        confirmLabel="Clear results"
+        confirmLabel={t("admin.clearConfirm")}
         danger
         pending={pending}
         onConfirm={confirmClearResults}

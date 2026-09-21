@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n/types";
+
 export type PrizeContributionRow = {
   id: string;
   amountCents: number;
@@ -9,9 +11,13 @@ export type PrizeContributionRow = {
   user: { id: string; displayName: string | null; email: string } | null;
 };
 
-export function formatPrizePool(cents: number): string {
+export function formatPrizePool(
+  cents: number,
+  locale: Locale | string = "en",
+): string {
   const dollars = cents / 100;
-  return new Intl.NumberFormat("en-CA", {
+  const tag = locale === "fr" || locale === "fr-CA" ? "fr-CA" : "en-CA";
+  return new Intl.NumberFormat(tag, {
     style: "currency",
     currency: "CAD",
     maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
@@ -28,12 +34,15 @@ export function parseDollarAmount(input: string): number | null {
   return Math.round(dollars * 100);
 }
 
-export function contributorLabel(row: {
-  guestName: string | null;
-  user: { displayName: string | null; email: string } | null;
-}): string {
+export function contributorLabel(
+  row: {
+    guestName: string | null;
+    user: { displayName: string | null; email: string } | null;
+  },
+  unknownLabel = "Unknown",
+): string {
   if (row.user) {
     return row.user.displayName?.trim() || row.user.email;
   }
-  return row.guestName?.trim() || "Unknown";
+  return row.guestName?.trim() || unknownLabel;
 }

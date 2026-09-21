@@ -6,6 +6,7 @@ import {
   createPrizeContribution,
   deletePrizeContribution,
 } from "@/app/(app)/admin/settings-actions";
+import { useLocale, useT } from "@/components/i18n/locale-provider";
 import {
   contributorLabel,
   formatPrizePool,
@@ -29,6 +30,8 @@ export function PrizePoolForm({
   players: PlayerOption[];
   contributions: PrizeContributionRow[];
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [amount, setAmount] = useState("");
   const [userId, setUserId] = useState(players[0]?.id ?? GUEST_VALUE);
   const [guestName, setGuestName] = useState("");
@@ -38,9 +41,10 @@ export function PrizePoolForm({
   const [pending, startTransition] = useTransition();
 
   const isGuest = userId === GUEST_VALUE;
+  const dateLocale = locale === "fr" ? "fr-CA" : "en-CA";
   const totalLabel = useMemo(
-    () => formatPrizePool(initialCents),
-    [initialCents],
+    () => formatPrizePool(initialCents, locale),
+    [initialCents, locale],
   );
 
   function onAdd(e: React.FormEvent) {
@@ -61,7 +65,7 @@ export function PrizePoolForm({
       setAmount("");
       setGuestName("");
       setNote("");
-      setMessage("Contribution added");
+      setMessage(t("prize.added"));
     });
   }
 
@@ -74,7 +78,7 @@ export function PrizePoolForm({
         setError(result.error);
         return;
       }
-      setMessage("Contribution removed");
+      setMessage(t("prize.removed"));
     });
   }
 
@@ -83,11 +87,9 @@ export function PrizePoolForm({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="font-display text-lg font-semibold tracking-tight">
-            Prize pool
+            {t("prize.poolTitle")}
           </h2>
-          <p className="mt-1 text-sm text-muted">
-            Log each buy-in. Total updates the header for everyone.
-          </p>
+          <p className="mt-1 text-sm text-muted">{t("prize.poolSubtitle")}</p>
         </div>
         <p className="text-lg font-semibold tabular-nums text-gold">
           {totalLabel}
@@ -97,7 +99,9 @@ export function PrizePoolForm({
       <form onSubmit={onAdd} className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted">Amount (CAD)</span>
+            <span className="text-xs font-medium text-muted">
+              {t("prize.amountLabel")}
+            </span>
             <div className="relative">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">
                 $
@@ -107,7 +111,7 @@ export function PrizePoolForm({
                 inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="25"
+                placeholder={t("prize.amountPlaceholder")}
                 required
                 className="h-12 w-full rounded-xl border border-border bg-background py-2 pl-7 pr-3 text-base tabular-nums outline-none ring-accent focus:ring-2"
               />
@@ -115,7 +119,9 @@ export function PrizePoolForm({
           </label>
 
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted">Contributor</span>
+            <span className="text-xs font-medium text-muted">
+              {t("prize.contributor")}
+            </span>
             <select
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
@@ -126,19 +132,21 @@ export function PrizePoolForm({
                   {player.displayName ?? player.email}
                 </option>
               ))}
-              <option value={GUEST_VALUE}>Someone else (not in pool)…</option>
+              <option value={GUEST_VALUE}>{t("prize.guestOption")}</option>
             </select>
           </label>
         </div>
 
         {isGuest ? (
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted">Guest name</span>
+            <span className="text-xs font-medium text-muted">
+              {t("prize.guestName")}
+            </span>
             <input
               type="text"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Name"
+              placeholder={t("prize.guestNamePlaceholder")}
               required
               minLength={2}
               maxLength={80}
@@ -149,13 +157,14 @@ export function PrizePoolForm({
 
         <label className="block space-y-1.5">
           <span className="text-xs font-medium text-muted">
-            Note <span className="font-normal">(optional)</span>
+            {t("prize.note")}{" "}
+            <span className="font-normal">{t("prize.optional")}</span>
           </span>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. Week 3 buy-in"
+            placeholder={t("prize.notePlaceholder")}
             maxLength={120}
             className="h-12 w-full rounded-xl border border-border bg-background px-3 text-base outline-none ring-accent focus:ring-2"
           />
@@ -166,7 +175,7 @@ export function PrizePoolForm({
           disabled={pending}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60 sm:w-auto sm:px-5"
         >
-          {pending ? "Saving…" : "Add contribution"}
+          {pending ? t("prize.saving") : t("prize.add")}
         </button>
       </form>
 
@@ -175,10 +184,10 @@ export function PrizePoolForm({
 
       <div className="border-t border-border pt-3">
         <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-          Contributions
+          {t("prize.contributionsHeading")}
         </h3>
         {contributions.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">No contributions yet.</p>
+          <p className="mt-2 text-sm text-muted">{t("prize.empty")}</p>
         ) : (
           <ul className="mt-2 divide-y divide-border">
             {contributions.map((row) => (
@@ -188,10 +197,10 @@ export function PrizePoolForm({
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
-                    {contributorLabel(row)}
+                    {contributorLabel(row, t("prize.unknownContributor"))}
                   </p>
                   <p className="truncate text-xs text-muted">
-                    {new Date(row.createdAt).toLocaleDateString("en-CA", {
+                    {new Date(row.createdAt).toLocaleDateString(dateLocale, {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
@@ -200,7 +209,7 @@ export function PrizePoolForm({
                   </p>
                 </div>
                 <span className="shrink-0 font-semibold tabular-nums text-gold">
-                  {formatPrizePool(row.amountCents)}
+                  {formatPrizePool(row.amountCents, locale)}
                 </span>
                 <button
                   type="button"
@@ -208,7 +217,7 @@ export function PrizePoolForm({
                   onClick={() => onRemove(row.id)}
                   className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted hover:bg-background hover:text-accent disabled:opacity-50"
                 >
-                  Remove
+                  {t("prize.remove")}
                 </button>
               </li>
             ))}

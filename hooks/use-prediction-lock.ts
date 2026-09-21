@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLocale } from "@/components/i18n/locale-provider";
 import {
   formatLockCountdownFromMs,
   isLockUrgent,
@@ -18,6 +19,7 @@ export function usePredictionLock(
   lockAtIso: string | null | undefined,
   forceLocked = false,
 ) {
+  const { locale, t } = useLocale();
   const lockAtMs =
     lockAtIso != null && lockAtIso !== "" ? Date.parse(lockAtIso) : Number.NaN;
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -37,7 +39,6 @@ export function usePredictionLock(
       remaining <= DAY ? 1_000 : 60_000,
     );
 
-    // When still >24h away, switch to 1s ticks as we enter the final day
     let switchId: number | undefined;
     if (remaining > DAY) {
       switchId = window.setTimeout(() => {
@@ -59,8 +60,11 @@ export function usePredictionLock(
     ? 0
     : Math.max(0, lockAtMs - nowMs);
   const label = locked
-    ? "Locked"
-    : formatLockCountdownFromMs(lockAtMs, nowMs);
+    ? t("lock.locked")
+    : formatLockCountdownFromMs(lockAtMs, nowMs, {
+        lockedLabel: t("lock.locked"),
+        dayUnit: locale === "fr" ? "j" : "d",
+      });
   const urgent = !locked && isLockUrgent(lockAtMs, nowMs);
 
   return { locked, label, remainingMs, urgent };

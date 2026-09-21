@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Lock, Timer } from "lucide-react";
 
+import { useT } from "@/components/i18n/locale-provider";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
 
 export type LockClockProps = {
@@ -14,6 +15,7 @@ export function LockCountdownChip({
   lockAtIso,
   forceLocked = false,
 }: LockClockProps) {
+  const t = useT();
   const { locked, label, urgent } = usePredictionLock(lockAtIso, forceLocked);
 
   const tone = locked
@@ -26,20 +28,24 @@ export function LockCountdownChip({
     <Link
       href="/"
       transitionTypes={["nav-back"]}
-      className={`inline-flex max-w-[11.5rem] items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold tabular-nums transition-colors sm:max-w-none ${tone}`}
+      className={`inline-flex max-w-[7.5rem] shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors sm:max-w-none sm:gap-1.5 sm:px-2.5 sm:py-1.5 sm:text-xs ${tone}`}
       aria-label={
         locked
-          ? "Predictions locked. Open home."
-          : `Predictions lock in ${label}. Open home.`
+          ? t("lock.chipAriaLocked")
+          : t("lock.chipAriaCountdown", { label })
       }
-      title={locked ? "Predictions locked" : `Locks in ${label}`}
+      title={
+        locked
+          ? t("lock.chipTitleLocked")
+          : t("lock.chipTitleCountdown", { label })
+      }
     >
       {locked ? (
         <Lock className="size-3.5 shrink-0" aria-hidden />
       ) : (
         <Timer className="size-3.5 shrink-0" aria-hidden />
       )}
-      <span className="truncate">{locked ? "Locked" : label}</span>
+      <span className="truncate">{locked ? t("lock.locked") : label}</span>
     </Link>
   );
 }

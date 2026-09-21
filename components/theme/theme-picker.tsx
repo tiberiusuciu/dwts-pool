@@ -2,8 +2,9 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 
+import { useT } from "@/components/i18n/locale-provider";
 import { useTheme } from "@/components/theme/theme-provider";
-import { THEME_OPTIONS, type ThemePreference } from "@/lib/theme";
+import type { ThemePreference } from "@/lib/theme";
 
 const ICONS: Record<ThemePreference, typeof Sun> = {
   system: Monitor,
@@ -11,26 +12,31 @@ const ICONS: Record<ThemePreference, typeof Sun> = {
   dark: Moon,
 };
 
+const OPTIONS: { value: ThemePreference; labelKey: string }[] = [
+  { value: "system", labelKey: "theme.system" },
+  { value: "light", labelKey: "theme.light" },
+  { value: "dark", labelKey: "theme.dark" },
+];
+
 export function ThemePicker() {
   const { preference, setPreference } = useTheme();
+  const t = useT();
 
   return (
     <div className="space-y-3">
       <div>
         <h2 className="font-display text-xl font-semibold tracking-tight">
-          Appearance
+          {t("theme.title")}
         </h2>
-        <p className="mt-2 text-sm text-muted">
-          Light, dark, or match your device.
-        </p>
+        <p className="mt-2 text-sm text-muted">{t("theme.subtitle")}</p>
       </div>
 
       <div
         role="radiogroup"
-        aria-label="Theme"
+        aria-label={t("theme.aria")}
         className="grid grid-cols-3 gap-2"
       >
-        {THEME_OPTIONS.map(({ value, label }) => {
+        {OPTIONS.map(({ value, labelKey }) => {
           const Icon = ICONS[value];
           const selected = preference === value;
           return (
@@ -47,7 +53,7 @@ export function ThemePicker() {
               }`}
             >
               <Icon className="size-4" aria-hidden />
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}

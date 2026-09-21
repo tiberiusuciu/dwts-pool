@@ -2,6 +2,7 @@ import { EpisodeStatus } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { PredictionForm } from "@/components/predictions/prediction-form";
+import { PredictEmpty } from "@/components/predictions/predict-empty";
 import {
   getActiveCouples,
   getEpisodeLockAt,
@@ -19,16 +20,7 @@ export default async function PredictPage() {
 
   const episode = await getPredictableEpisode();
   if (!episode) {
-    return (
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Season winner
-        </h1>
-        <p className="mt-3 text-sm text-muted">
-          No upcoming episode is open for predictions right now.
-        </p>
-      </div>
-    );
+    return <PredictEmpty />;
   }
 
   const [couples, initial] = await Promise.all([

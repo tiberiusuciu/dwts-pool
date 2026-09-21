@@ -6,8 +6,10 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { useT } from "@/components/i18n/locale-provider";
 
 export function SignupForm() {
+  const t = useT();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +30,7 @@ export function SignupForm() {
 
     if (!res.ok) {
       setPending(false);
-      setError(data.error ?? "Could not create account");
+      setError(data.error ?? t("auth.couldNotCreate"));
       return;
     }
 
@@ -40,7 +42,7 @@ export function SignupForm() {
     setPending(false);
 
     if (result?.error) {
-      setError("Account created, but sign-in failed. Try logging in.");
+      setError(t("auth.createdButSignInFailed"));
       return;
     }
 
@@ -50,13 +52,15 @@ export function SignupForm() {
 
   return (
     <div className="mx-auto w-full max-w-sm">
-      <p className="font-display text-3xl font-semibold tracking-tight">DWTS Pool</p>
-      <h1 className="mt-6 text-xl font-semibold">Create account</h1>
-      <p className="mt-1 text-sm text-muted">Join the private prize pool.</p>
+      <p className="font-display text-3xl font-semibold tracking-tight">
+        {t("auth.brand")}
+      </p>
+      <h1 className="mt-6 text-xl font-semibold">{t("auth.signupTitle")}</h1>
+      <p className="mt-1 text-sm text-muted">{t("auth.signupSubtitle")}</p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Email</span>
+          <span className="text-sm font-medium">{t("auth.email")}</span>
           <input
             type="email"
             autoComplete="email"
@@ -67,7 +71,7 @@ export function SignupForm() {
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Password</span>
+          <span className="text-sm font-medium">{t("auth.password")}</span>
           <input
             type="password"
             autoComplete="new-password"
@@ -77,7 +81,7 @@ export function SignupForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="h-12 w-full rounded-xl border border-border bg-surface px-3 text-base outline-none ring-accent focus:ring-2"
           />
-          <span className="text-xs text-muted">At least 8 characters</span>
+          <span className="text-xs text-muted">{t("auth.passwordHint")}</span>
         </label>
         {error ? <p className="text-sm text-accent">{error}</p> : null}
         <button
@@ -85,22 +89,22 @@ export function SignupForm() {
           disabled={pending}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
         >
-          {pending ? "Creating…" : "Create account"}
+          {pending ? t("auth.creating") : t("auth.createAccount")}
         </button>
       </form>
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted">or</span>
+        <span className="text-xs text-muted">{t("auth.or")}</span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
       <GoogleSignInButton callbackUrl="/onboarding" />
 
       <p className="mt-8 text-center text-sm text-muted">
-        Already have an account?{" "}
+        {t("auth.hasAccount")}{" "}
         <Link href="/login" className="font-medium text-accent hover:underline">
-          Sign in
+          {t("auth.signInLink")}
         </Link>
       </p>
     </div>

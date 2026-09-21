@@ -2,12 +2,14 @@
 
 import { useEffect, useId, useRef } from "react";
 
+import { useT } from "@/components/i18n/locale-provider";
+
 export function ConfirmModal({
   open,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   pending = false,
   danger = false,
   onConfirm,
@@ -23,9 +25,12 @@ export function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const titleId = useId();
   const descId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const resolvedConfirm = confirmLabel ?? t("common.confirm");
+  const resolvedCancel = cancelLabel ?? t("common.cancel");
 
   useEffect(() => {
     if (!open) return;
@@ -44,7 +49,7 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <button
         type="button"
-        aria-label="Dismiss"
+        aria-label={t("common.dismiss")}
         disabled={pending}
         onClick={onCancel}
         className="absolute inset-0 bg-black/55"
@@ -73,7 +78,7 @@ export function ConfirmModal({
             onClick={onCancel}
             className="h-11 rounded-xl border border-border px-4 text-sm font-medium hover:bg-background disabled:opacity-60"
           >
-            {cancelLabel}
+            {resolvedCancel}
           </button>
           <button
             type="button"
@@ -85,7 +90,7 @@ export function ConfirmModal({
                 : "bg-foreground text-surface"
             }`}
           >
-            {pending ? "Working…" : confirmLabel}
+            {pending ? t("common.working") : resolvedConfirm}
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { useMemo, useState, useTransition } from "react";
 
 import { savePredictions } from "@/app/(app)/predict/actions";
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
+import { useT } from "@/components/i18n/locale-provider";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
 import type { CoupleOption } from "@/lib/couple";
 import {
@@ -89,6 +90,7 @@ export function PredictionForm({
     seasonWinnerFromEpisodeNumber: number | null;
   };
 }) {
+  const t = useT();
   const router = useRouter();
   const { locked, label: lockLabel } = usePredictionLock(
     lockAtIso,
@@ -141,7 +143,7 @@ export function PredictionForm({
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (locked) {
-      setError("Predictions are locked");
+      setError(t("predict.errorLocked"));
       return;
     }
     if (!canSave || !seasonWinnerCoupleId) return;
@@ -156,7 +158,7 @@ export function PredictionForm({
         setError(result.error);
         return;
       }
-      setMessage("Season winner saved");
+      setMessage(t("predict.saved"));
       router.refresh();
     });
   }
@@ -165,15 +167,22 @@ export function PredictionForm({
     <form onSubmit={onSubmit} className={`space-y-6 ${canSave ? "pb-28" : ""}`}>
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-          Episode {episodeNumber}
-          {locked ? " · Locked" : ` · ${lockLabel}`}
+          {locked
+            ? t("predict.episodeMetaLocked", { number: episodeNumber })
+            : t("predict.episodeMetaOpen", {
+                number: episodeNumber,
+                lockLabel,
+              })}
         </p>
         <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
-          Season winner
+          {t("predict.title")}
         </h1>
         <p className="mt-2 text-sm text-muted">
-          {episodeTitle}. Correct pick pays {SEASON_WINNER_BASE} +{" "}
-          {SEASON_WINNER_PER_WEEK} pts per week held through the finale.
+          {t("predict.subtitle", {
+            episodeTitle,
+            base: SEASON_WINNER_BASE,
+            perWeek: SEASON_WINNER_PER_WEEK,
+          })}
         </p>
         {locked ? (
           <div
@@ -182,11 +191,8 @@ export function PredictionForm({
           >
             <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
             <div>
-              <p className="font-semibold">Predictions locked</p>
-              <p className="mt-0.5 text-accent/90">
-                Tue 8pm ET has passed (or this episode is live). Your season
-                winner pick can no longer be changed.
-              </p>
+              <p className="font-semibold">{t("predict.lockedTitle")}</p>
+              <p className="mt-0.5 text-accent/90">{t("predict.lockedBody")}</p>
             </div>
           </div>
         ) : null}
@@ -194,8 +200,7 @@ export function PredictionForm({
 
       {pickEliminated ? (
         <p className="rounded-xl border border-accent/40 bg-accent-soft px-3 py-2 text-sm text-accent">
-          Your previous pick was eliminated — choose a new winner (week bonus
-          resets).
+          {t("predict.elimResetNotice")}
         </p>
       ) : null}
 
@@ -209,15 +214,21 @@ export function PredictionForm({
       {seasonWinnerCoupleId ? (
         <div className="space-y-1 rounded-xl border border-border bg-surface px-4 py-3">
           <p className="text-sm font-medium text-foreground">
-            If you&apos;re right:{" "}
-            <span className="tabular-nums text-accent">{forecastPts} pts</span>
+            {t("predict.forecastIfRight")}{" "}
+            <span className="tabular-nums text-accent">
+              {t("predict.forecastPts", { points: forecastPts })}
+            </span>
           </p>
           <p className="text-xs text-muted">
-            {SEASON_WINNER_BASE} base + {SEASON_WINNER_PER_WEEK} × {weeksIfHeld}{" "}
-            week{weeksIfHeld === 1 ? "" : "s"} (held Ep {fromEpisode} → Ep{" "}
-            {forecastFinale}).
+            {t("predict.forecastBreakdown", {
+              base: SEASON_WINNER_BASE,
+              perWeek: SEASON_WINNER_PER_WEEK,
+              weeks: weeksIfHeld,
+              from: fromEpisode,
+              to: forecastFinale,
+            })}
             {seasonWinnerCoupleId === savedId
-              ? " Grows each week you keep this pick."
+              ? ` ${t("predict.forecastGrows")}`
               : null}
           </p>
         </div>
@@ -225,9 +236,11 @@ export function PredictionForm({
 
       {isSwap && !locked ? (
         <p className="rounded-xl border border-accent/40 bg-accent-soft px-3 py-2 text-sm text-accent">
-          Switching couples resets your week bonus. You&apos;ll start over from
-          Ep {episodeNumber} ({SEASON_WINNER_BASE} + {SEASON_WINNER_PER_WEEK}
-          /week from here).
+          {t("predict.swapWarning", {
+            number: episodeNumber,
+            base: SEASON_WINNER_BASE,
+            perWeek: SEASON_WINNER_PER_WEEK,
+          })}
         </p>
       ) : null}
 
@@ -243,10 +256,10 @@ export function PredictionForm({
               className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
             >
               {pending
-                ? "Saving…"
+                ? t("predict.saving")
                 : isSwap
-                  ? "Confirm new winner (reset weeks)"
-                  : "Save season winner"}
+                  ? t("predict.confirmSwap")
+                  : t("predict.save")}
             </button>
           </div>
         </div>

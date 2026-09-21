@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { AdminHeader } from "@/components/admin/admin-header";
 import { AdminLiveForm } from "@/components/admin/admin-live-form";
 import { PrizePoolForm } from "@/components/admin/prize-pool-form";
 import {
@@ -51,10 +52,7 @@ export default async function AdminPage({
   if (episodes.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Host admin</h1>
-          <p className="mt-2 text-sm text-muted">No episodes seeded yet.</p>
-        </div>
+        <AdminHeader empty />
         {prizeSection}
       </div>
     );
@@ -85,14 +83,7 @@ export default async function AdminPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Host admin
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Prize pool, live scores, eliminations, and point calculation.
-        </p>
-      </div>
+      <AdminHeader />
 
       {prizeSection}
 

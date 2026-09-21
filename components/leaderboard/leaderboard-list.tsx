@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useT } from "@/components/i18n/locale-provider";
 import type {
   EpisodeScoreBreakdown,
   LeaderboardEntry,
@@ -43,6 +44,7 @@ function pts(n: number) {
 }
 
 function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const elimHit = ep.elimPts > 0;
 
@@ -55,14 +57,19 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
         aria-expanded={open}
       >
         <span className="w-7 shrink-0 text-xs font-semibold tabular-nums text-muted">
-          E{ep.episodeNumber}
+          {t("leaderboard.epAbbrev", { number: ep.episodeNumber })}
         </span>
         <span className="min-w-0 flex-1 truncate text-xs font-medium">
           {ep.title}
         </span>
         <span className="hidden text-[11px] tabular-nums text-muted sm:inline">
-          {elimHit ? "Elim ✓" : "Elim —"} · Rnk {pts(ep.rankPts)}
-          {ep.seasonPts > 0 ? ` · Sea ${pts(ep.seasonPts)}` : ""}
+          {elimHit
+            ? t("leaderboard.summaryElimHit")
+            : t("leaderboard.summaryElimMiss")}{" "}
+          · {t("leaderboard.summaryRank", { pts: pts(ep.rankPts) })}
+          {ep.seasonPts > 0
+            ? ` · ${t("leaderboard.summarySeason", { pts: pts(ep.seasonPts) })}`
+            : ""}
         </span>
         <span className="text-xs font-semibold tabular-nums">
           {pts(ep.total)}
@@ -78,7 +85,7 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
         <div className="space-y-2 border-t border-border/70 px-2.5 py-2">
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
             <span>
-              Elim pick:{" "}
+              {t("leaderboard.elimPick")}{" "}
               <span
                 className={
                   elimHit
@@ -91,14 +98,20 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
               {ep.actualElimNames.length > 0 ? (
                 <>
                   {" "}
-                  · actual {ep.actualElimNames.join(", ")}
+                  · {t("leaderboard.actual", {
+                    names: ep.actualElimNames.join(", "),
+                  })}
                 </>
               ) : null}
               <span className="tabular-nums"> ({pts(ep.elimPts)})</span>
             </span>
-            <span className="tabular-nums">Ranks {pts(ep.rankPts)}</span>
+            <span className="tabular-nums">
+              {t("leaderboard.ranksLabel", { pts: pts(ep.rankPts) })}
+            </span>
             {ep.seasonPts > 0 ? (
-              <span className="tabular-nums">Season {pts(ep.seasonPts)}</span>
+              <span className="tabular-nums">
+                {t("leaderboard.seasonLabel", { pts: pts(ep.seasonPts) })}
+              </span>
             ) : null}
           </div>
 
@@ -106,10 +119,18 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-left text-muted">
-                  <th className="pb-1 font-medium">Couple</th>
-                  <th className="pb-1 pr-2 text-right font-medium">Pred</th>
-                  <th className="pb-1 pr-2 text-right font-medium">Act</th>
-                  <th className="pb-1 text-right font-medium">Pts</th>
+                  <th className="pb-1 font-medium">
+                    {t("leaderboard.colCouple")}
+                  </th>
+                  <th className="pb-1 pr-2 text-right font-medium">
+                    {t("leaderboard.colPred")}
+                  </th>
+                  <th className="pb-1 pr-2 text-right font-medium">
+                    {t("leaderboard.colAct")}
+                  </th>
+                  <th className="pb-1 text-right font-medium">
+                    {t("leaderboard.colPts")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -132,7 +153,9 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
               </tbody>
             </table>
           ) : (
-            <p className="text-[11px] text-muted">No rank predictions.</p>
+            <p className="text-[11px] text-muted">
+              {t("leaderboard.noRankPredictions")}
+            </p>
           )}
         </div>
       ) : null}
@@ -141,6 +164,7 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
 }
 
 export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
+  const t = useT();
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -178,11 +202,7 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
   }, [router]);
 
   if (entries.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        No players yet. Calculate points after results are in.
-      </p>
-    );
+    return <p className="text-sm text-muted">{t("leaderboard.empty")}</p>;
   }
 
   return (
@@ -206,7 +226,9 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
               </span>
               <span className="tabular-nums text-sm font-semibold">
                 {entry.totalPoints}
-                <span className="ml-1 text-xs font-normal text-muted">pts</span>
+                <span className="ml-1 text-xs font-normal text-muted">
+                  {t("leaderboard.pts")}
+                </span>
               </span>
               <ChevronDown
                 className={`size-4 shrink-0 text-muted transition-transform ${
@@ -219,7 +241,7 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
               <div className="space-y-1.5 border-t border-border bg-background/50 px-2.5 py-2.5">
                 {entry.episodes.length === 0 ? (
                   <p className="px-1 text-xs text-muted">
-                    No scored episodes yet.
+                    {t("leaderboard.noScoredEpisodes")}
                   </p>
                 ) : (
                   entry.episodes.map((ep) => (

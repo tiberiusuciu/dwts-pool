@@ -12,6 +12,7 @@ import {
 
 import { savePredictions } from "@/app/(app)/predict/actions";
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
+import { useT } from "@/components/i18n/locale-provider";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
 import type { CoupleOption } from "@/lib/couple";
 
@@ -39,12 +40,17 @@ export function RankPredictionBoard({
   initialOrder: string[];
   initialEliminatedCoupleId: string | null;
 }) {
+  const t = useT();
   const { locked, label: lockLabel } = usePredictionLock(
     lockAtIso,
     forceLocked,
   );
   const isLive = episodeStatus === EpisodeStatus.LIVE;
-  const statusLabel = isLive ? "Live" : locked ? "Locked" : "Upcoming";
+  const statusLabel = isLive
+    ? t("ranks.statusLive")
+    : locked
+      ? t("ranks.statusLocked")
+      : t("ranks.statusUpcoming");
 
   const byId = useMemo(() => {
     const map = new Map(couples.map((c) => [c.id, c]));
@@ -81,11 +87,11 @@ export function RankPredictionBoard({
     setError(null);
     setMessage(null);
     if (locked) {
-      setError("Predictions are locked");
+      setError(t("ranks.errorLocked"));
       return;
     }
     if (!eliminatedCoupleId) {
-      setError("Pick who you think gets eliminated");
+      setError(t("ranks.errorNeedElim"));
       return;
     }
     startSaveTransition(async () => {
@@ -98,7 +104,7 @@ export function RankPredictionBoard({
         setError(result.error);
         return;
       }
-      setMessage("Predictions saved");
+      setMessage(t("ranks.saved"));
     });
   }
 
@@ -107,17 +113,17 @@ export function RankPredictionBoard({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-            Episode {episodeNumber} · {statusLabel}
+            {t("ranks.episodeMeta", { number: episodeNumber, status: statusLabel })}
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold tracking-tight">
             {episodeTitle}
           </h2>
           <p className="mt-1 text-sm text-muted">
             {isLive
-              ? "Your locked rank and elim pick for tonight."
+              ? t("ranks.helpLive")
               : locked
-                ? "Rank and elim picks are locked for this episode."
-                : `Rank highest → lowest expected score, and mark your elim pick. Locks in ${lockLabel}.`}
+                ? t("ranks.helpLocked")
+                : t("ranks.helpOpen", { lockLabel })}
           </p>
         </div>
       </div>
@@ -130,12 +136,10 @@ export function RankPredictionBoard({
           <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
           <div>
             <p className="font-semibold">
-              {isLive ? "Episode is live" : "Predictions locked"}
+              {isLive ? t("ranks.bannerLiveTitle") : t("ranks.bannerLockedTitle")}
             </p>
             <p className="mt-0.5 text-accent/90">
-              {isLive
-                ? "Voting is closed while the show is on. Your picks below are final."
-                : "Tue 8pm ET has passed. Rank and elim picks can no longer be changed."}
+              {isLive ? t("ranks.bannerLiveBody") : t("ranks.bannerLockedBody")}
             </p>
           </div>
         </div>
@@ -187,13 +191,15 @@ export function RankPredictionBoard({
                     disabled={locked || pending}
                     onChange={() => setEliminatedCoupleId(id)}
                   />
-                  Elim
+                  {t("ranks.elim")}
                 </label>
                 {!locked ? (
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
-                      aria-label={`Move ${couple.celebrityName} up`}
+                      aria-label={t("ranks.moveUpAria", {
+                        name: couple.celebrityName,
+                      })}
                       disabled={index === 0 || pending}
                       onClick={() => move(index, -1)}
                       className="flex size-11 items-center justify-center rounded-xl border border-border disabled:opacity-40"
@@ -202,7 +208,9 @@ export function RankPredictionBoard({
                     </button>
                     <button
                       type="button"
-                      aria-label={`Move ${couple.celebrityName} down`}
+                      aria-label={t("ranks.moveDownAria", {
+                        name: couple.celebrityName,
+                      })}
                       disabled={index === order.length - 1 || pending}
                       onClick={() => move(index, 1)}
                       className="flex size-11 items-center justify-center rounded-xl border border-border disabled:opacity-40"
@@ -224,7 +232,7 @@ export function RankPredictionBoard({
           onClick={onSave}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save predictions"}
+          {pending ? t("ranks.saving") : t("ranks.save")}
         </button>
       )}
 

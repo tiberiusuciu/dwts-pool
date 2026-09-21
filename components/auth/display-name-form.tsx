@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
+import { useT } from "@/components/i18n/locale-provider";
+
 export function DisplayNameForm({
   initialName = "",
   title,
@@ -23,6 +25,7 @@ export function DisplayNameForm({
   headingLevel?: 1 | 2;
   hideFieldLabel?: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const { update } = useSession();
   const [displayName, setDisplayName] = useState(initialName);
@@ -45,7 +48,7 @@ export function DisplayNameForm({
 
     if (!res.ok) {
       setPending(false);
-      setError(data.error ?? "Could not save");
+      setError(data.error ?? t("auth.couldNotSave"));
       return;
     }
 
@@ -73,7 +76,7 @@ export function DisplayNameForm({
               hideFieldLabel ? "sr-only" : "text-sm font-medium"
             }
           >
-            Display name
+            {t("auth.displayName")}
           </span>
           <input
             type="text"
@@ -82,18 +85,18 @@ export function DisplayNameForm({
             maxLength={40}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="How others will see you"
+            placeholder={t("auth.displayNamePlaceholder")}
             className="h-12 w-full rounded-xl border border-border bg-background px-3 text-base outline-none ring-accent focus:ring-2"
           />
         </label>
         {error ? <p className="text-sm text-accent">{error}</p> : null}
-        {saved ? <p className="text-sm text-muted">Saved</p> : null}
+        {saved ? <p className="text-sm text-muted">{t("auth.saved")}</p> : null}
         <button
           type="submit"
           disabled={pending}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
         >
-          {pending ? "Saving…" : submitLabel}
+          {pending ? t("auth.saving") : submitLabel}
         </button>
       </form>
     </div>

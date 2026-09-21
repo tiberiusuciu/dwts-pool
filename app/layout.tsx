@@ -3,6 +3,7 @@ import { DM_Sans, Syne } from "next/font/google";
 import Script from "next/script";
 
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 
@@ -41,7 +42,9 @@ export default function RootLayout({
           {themeBootScript}
         </Script>
         <ThemeProvider>
-          <AuthSessionProvider>{children}</AuthSessionProvider>
+          <LocaleProvider>
+            <AuthSessionProvider>{children}</AuthSessionProvider>
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

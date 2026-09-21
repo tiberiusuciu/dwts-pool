@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Crown, Home, Settings, Trophy } from "lucide-react";
 
+import { useT } from "@/components/i18n/locale-provider";
+import { DiscoBall } from "@/components/layout/disco-ball";
 import {
   LockCountdownChip,
   type LockClockProps,
@@ -11,10 +13,10 @@ import {
 import { PrizePoolChip } from "@/components/layout/prize-pool-chip";
 
 const NAV = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/predict", label: "Winner", icon: Crown },
-  { href: "/leaderboard", label: "Ranks", icon: Trophy },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", labelKey: "nav.home", icon: Home },
+  { href: "/predict", labelKey: "nav.winner", icon: Crown },
+  { href: "/leaderboard", labelKey: "nav.ranks", icon: Trophy },
+  { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ] as const;
 
 function navIndex(pathname: string) {
@@ -30,19 +32,23 @@ function StandingChip({
 }: {
   standing: { rank: number; totalPoints: number } | null;
 }) {
+  const t = useT();
   if (!standing) return null;
   return (
     <Link
       href="/leaderboard"
       transitionTypes={["nav-forward"]}
-      className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs font-medium tabular-nums transition-colors hover:border-accent/50 hover:text-accent"
-      aria-label={`Rank ${standing.rank}, ${standing.totalPoints} points. Open leaderboard.`}
+      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background/70 px-2 py-1 text-[11px] font-medium tabular-nums transition-colors hover:border-accent/50 hover:text-accent sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
+      aria-label={t("nav.standingAria", {
+        rank: standing.rank,
+        points: standing.totalPoints,
+      })}
     >
       <span className="text-accent">#{standing.rank}</span>
-      <span className="text-muted">·</span>
-      <span>
+      <span className="hidden text-muted sm:inline">·</span>
+      <span className="hidden sm:inline">
         {standing.totalPoints}
-        <span className="ml-0.5 text-muted">pts</span>
+        <span className="ml-0.5 text-muted">{t("nav.pts")}</span>
       </span>
     </Link>
   );
@@ -61,6 +67,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const current = navIndex(pathname);
+  const t = useT();
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -68,17 +75,21 @@ export function AppShell({
         className="z-40 shrink-0 border-b border-border bg-surface/90 backdrop-blur-md"
         style={{ viewTransitionName: "site-header" }}
       >
-        <div className="mx-auto grid h-14 max-w-5xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 md:gap-3 md:px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-3 md:px-6">
           <Link
             href="/"
             transitionTypes={["nav-back"]}
-            className="justify-self-start font-display text-lg font-semibold tracking-tight"
+            aria-label={t("nav.brand")}
+            className="inline-flex shrink-0 items-center gap-2 font-display text-lg font-semibold tracking-tight md:justify-self-start"
           >
-            DWTS Pool
+            <DiscoBall className="shrink-0" />
+            <span className="hidden whitespace-nowrap sm:inline">
+              {t("nav.brand")}
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-1 justify-self-center md:flex">
-            {NAV.map(({ href, label, icon: Icon }, index) => {
+            {NAV.map(({ href, labelKey, icon: Icon }, index) => {
               const active = pathname === href;
               const types =
                 index >= current ? ["nav-forward"] : ["nav-back"];
@@ -94,13 +105,13 @@ export function AppShell({
                   }`}
                 >
                   <Icon className="size-4" strokeWidth={active ? 2.25 : 1.75} />
-                  {label}
+                  {t(labelKey)}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="flex min-w-0 items-center justify-end gap-1.5 justify-self-end sm:gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5 md:flex-initial md:justify-self-end md:gap-2">
             <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
             <StandingChip standing={standing} />
@@ -120,7 +131,7 @@ export function AppShell({
         style={{ viewTransitionName: "site-tabbar" }}
       >
         <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around px-2">
-          {NAV.map(({ href, label, icon: Icon }, index) => {
+          {NAV.map(({ href, labelKey, icon: Icon }, index) => {
             const active = pathname === href;
             const types =
               index >= current ? ["nav-forward"] : ["nav-back"];
@@ -134,7 +145,7 @@ export function AppShell({
                 }`}
               >
                 <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
-                <span className={active ? "font-medium" : ""}>{label}</span>
+                <span className={active ? "font-medium" : ""}>{t(labelKey)}</span>
               </Link>
             );
           })}
