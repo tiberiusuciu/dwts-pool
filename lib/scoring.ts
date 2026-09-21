@@ -1,5 +1,6 @@
 import {
   CoupleStatus,
+  EpisodeStatus,
   PredictionKind,
   type ActualResult,
   type Episode,
@@ -20,6 +21,9 @@ export {
   SEASON_WINNER_BASE,
   SEASON_WINNER_PER_WEEK,
 } from "@/lib/season-scoring";
+
+/** Episodes still "upcoming" are treated as not aired — do not award points. */
+const SCORABLE_EPISODE_STATUSES = [EpisodeStatus.PAST, EpisodeStatus.LIVE] as const;
 
 /** Points for one couple: max(0, n - |predictedRank - actualRank|). */
 export function scoreRankDistance(
@@ -185,7 +189,10 @@ export async function recalculateAllPoints(): Promise<
       select: { id: true, displayName: true },
     }),
     prisma.episode.findMany({
-      where: { actualResults: { some: {} } },
+      where: {
+        status: { in: [...SCORABLE_EPISODE_STATUSES] },
+        actualResults: { some: {} },
+      },
       include: { actualResults: true },
       orderBy: { episodeNumber: "asc" },
     }),
@@ -296,7 +303,10 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
       orderBy: [{ totalPoints: "desc" }, { displayName: "asc" }],
     }),
     prisma.episode.findMany({
-      where: { actualResults: { some: {} } },
+      where: {
+        status: { in: [...SCORABLE_EPISODE_STATUSES] },
+        actualResults: { some: {} },
+      },
       include: { actualResults: true },
       orderBy: { episodeNumber: "asc" },
     }),

@@ -46,6 +46,11 @@ export async function setEpisodeStatus(
     data: { status },
   });
 
+  // Totals must drop rank/elim/season points when an episode is reset to UPCOMING
+  await recalculateAllPoints();
+  publishLeaderboardUpdate();
+  revalidatePath("/leaderboard");
+
   await broadcastEpisode(episodeId);
   return { ok: true };
 }
