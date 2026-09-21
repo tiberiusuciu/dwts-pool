@@ -14,7 +14,7 @@ import {
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { useT } from "@/components/i18n/locale-provider";
-import { SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
+import { SCORE_DEFAULT, SCORE_MIN } from "@/lib/scores";
 
 type EpisodeStatusValue = "PAST" | "LIVE" | "UPCOMING";
 
@@ -73,7 +73,7 @@ export function AdminLiveForm({
       prev.map((row) => {
         if (row.id !== coupleId) return row;
         const current = row.judgeScore ?? SCORE_DEFAULT;
-        const next = Math.min(SCORE_MAX, Math.max(SCORE_MIN, current + delta));
+        const next = Math.max(SCORE_MIN, current + delta);
         return { ...row, judgeScore: next };
       }),
     );
@@ -304,7 +304,7 @@ export function AdminLiveForm({
                 >
                   <Minus className="size-4" />
                 </button>
-                <span className="w-10 text-center text-lg font-semibold tabular-nums">
+                <span className="w-12 text-center text-lg font-semibold tabular-nums">
                   {row.judgeScore ?? SCORE_DEFAULT}
                 </span>
                 <button

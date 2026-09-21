@@ -9,7 +9,7 @@ import {
   publishLeaderboardUpdate,
   publishLiveUpdate,
 } from "@/lib/live-bus";
-import { clampScore, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
+import { clampScore, SCORE_MIN } from "@/lib/scores";
 import { prisma } from "@/lib/prisma";
 import { recalculateAllPoints } from "@/lib/scoring";
 
@@ -92,14 +92,10 @@ export async function upsertLiveResult(input: {
     return { ok: false, error: "Admin only" };
   }
 
-  if (
-    !Number.isFinite(input.judgeScore) ||
-    input.judgeScore < SCORE_MIN ||
-    input.judgeScore > SCORE_MAX
-  ) {
+  if (!Number.isFinite(input.judgeScore) || input.judgeScore < SCORE_MIN) {
     return {
       ok: false,
-      error: `Score must be between ${SCORE_MIN} and ${SCORE_MAX}`,
+      error: `Score must be at least ${SCORE_MIN}`,
     };
   }
 

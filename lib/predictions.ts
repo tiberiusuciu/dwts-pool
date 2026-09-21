@@ -16,7 +16,7 @@ export {
   formatLockCountdownFromMs,
   isLockUrgent,
 } from "@/lib/prediction-lock";
-export { clampScore, SCORE_DEFAULT, SCORE_MAX, SCORE_MIN } from "@/lib/scores";
+export { clampScore, SCORE_DEFAULT, SCORE_MIN } from "@/lib/scores";
 
 export type UserPredictionState = {
   seasonWinnerCoupleId: string | null;
