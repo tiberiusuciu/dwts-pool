@@ -2,6 +2,7 @@
 
 import { EpisodeStatus } from "@prisma/client";
 import { ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   startTransition,
   useMemo,
@@ -15,6 +16,10 @@ import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { useT } from "@/components/i18n/locale-provider";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
 import type { CoupleOption } from "@/lib/couple";
+
+function sameOrder(a: string[], b: string[]) {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
 
 export function RankPredictionBoard({
   episodeId,
@@ -41,6 +46,7 @@ export function RankPredictionBoard({
   initialEliminatedCoupleId: string | null;
 }) {
   const t = useT();
+  const router = useRouter();
   const { locked, label: lockLabel } = usePredictionLock(
     lockAtIso,
     forceLocked,
@@ -57,16 +63,27 @@ export function RankPredictionBoard({
     return map;
   }, [couples]);
 
-  const [order, setOrder] = useState(() => {
-    if (initialOrder.length === couples.length) return initialOrder;
-    return couples.map((c) => c.id);
-  });
+  const startingOrder =
+    initialOrder.length === couples.length
+      ? initialOrder
+      : couples.map((c) => c.id);
+
+  const [order, setOrder] = useState(startingOrder);
   const [eliminatedCoupleId, setEliminatedCoupleId] = useState<string | null>(
     initialEliminatedCoupleId,
   );
+  const [savedOrder, setSavedOrder] = useState(startingOrder);
+  const [savedEliminatedCoupleId, setSavedEliminatedCoupleId] = useState<
+    string | null
+  >(initialEliminatedCoupleId);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startSaveTransition] = useTransition();
+
+  const dirty =
+    eliminatedCoupleId !== savedEliminatedCoupleId ||
+    !sameOrder(order, savedOrder);
+  const canSave = Boolean(dirty && eliminatedCoupleId && !locked && !pending);
 
   function move(index: number, delta: number) {
     if (locked) return;
@@ -94,6 +111,7 @@ export function RankPredictionBoard({
       setError(t("ranks.errorNeedElim"));
       return;
     }
+    if (!canSave) return;
     startSaveTransition(async () => {
       const result = await savePredictions({
         episodeId,
@@ -104,7 +122,10 @@ export function RankPredictionBoard({
         setError(result.error);
         return;
       }
+      setSavedOrder(order);
+      setSavedEliminatedCoupleId(eliminatedCoupleId);
       setMessage(t("ranks.saved"));
+      router.refresh();
     });
   }
 
@@ -228,7 +249,7 @@ export function RankPredictionBoard({
       {locked ? null : (
         <button
           type="button"
-          disabled={pending}
+          disabled={!canSave}
           onClick={onSave}
           className="flex h-12 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-60"
         >
