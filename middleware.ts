@@ -58,8 +58,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  // Skip auth for Next internals and public static assets (couple photos, icons).
+  // Skip auth for Next internals, PWA assets, and public static files.
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|apple-icon|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

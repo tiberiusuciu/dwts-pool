@@ -131,9 +131,9 @@ export function AppShell({
   }, [router]);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div className="flex h-dvh flex-col overflow-hidden overscroll-none">
       <header
-        className="z-40 shrink-0 border-b border-border bg-surface/90 backdrop-blur-md"
+        className="z-40 shrink-0 border-b border-border bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-md"
         style={{ viewTransitionName: "site-header" }}
       >
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-3 md:px-6">
@@ -180,14 +180,14 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:px-6 md:pb-10 md:pt-8">
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+        <div className="mx-auto w-full max-w-5xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6 md:px-6 md:pb-10 md:pt-8">
           {children}
         </div>
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
         style={{ viewTransitionName: "site-tabbar" }}
       >
         <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around px-2">

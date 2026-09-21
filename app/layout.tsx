@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import { cookies } from "next/headers";
 
@@ -26,10 +26,30 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "DWTS Pool",
   description: "Private Dancing with the Stars prediction pool",
+  applicationName: "DWTS Pool",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "DWTS Pool",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     shortcut: ["/favicon.svg"],
+    apple: [{ url: "/apple-icon" }],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#07041a" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f1fa" },
+  ],
 };
 
 function resolveThemeFromCookie(
@@ -58,9 +78,9 @@ export default async function RootLayout({
       data-theme={resolved}
       style={{ colorScheme: resolved }}
       suppressHydrationWarning
-      className={`${dmSans.variable} ${syne.variable} min-h-full antialiased`}
+      className={`${dmSans.variable} ${syne.variable} h-dvh antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">
+      <body className="flex min-h-dvh flex-col font-sans">
         <ThemeProvider>
           <LocaleProvider>
             <AuthSessionProvider>{children}</AuthSessionProvider>
