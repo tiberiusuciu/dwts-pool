@@ -68,6 +68,8 @@ export const fr = {
     moveUpAria: "Monter {name}",
     moveDownAria: "Descendre {name}",
     setRankAria: "Définir le rang de {name}",
+    pickRankTitle: "Déplacer au rang",
+    closeRankPicker: "Fermer le sélecteur de rang",
     saving: "Enregistrement…",
     saved: "Pronostics enregistrés",
   },

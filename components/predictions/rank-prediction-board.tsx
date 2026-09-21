@@ -80,6 +80,7 @@ export function RankPredictionBoard({
   const [savedEliminatedCoupleId, setSavedEliminatedCoupleId] = useState<
     string | null
   >(initialEliminatedCoupleId);
+  const [rankPickerIndex, setRankPickerIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startSaveTransition] = useTransition();
@@ -242,20 +243,18 @@ export function RankPredictionBoard({
                 }`}
               >
                 {!locked ? (
-                  <select
-                    value={index}
+                  <button
+                    type="button"
                     aria-label={t("ranks.setRankAria", {
                       name: couple.celebrityName,
                     })}
-                    onChange={(e) => moveTo(index, Number(e.target.value))}
-                    className="flex size-8 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border-0 bg-background text-center text-sm font-semibold tabular-nums text-muted md:hidden"
+                    aria-haspopup="dialog"
+                    aria-expanded={rankPickerIndex === index}
+                    onClick={() => setRankPickerIndex(index)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold tabular-nums text-muted md:hidden"
                   >
-                    {order.map((_, i) => (
-                      <option key={i} value={i}>
-                        {i + 1}
-                      </option>
-                    ))}
-                  </select>
+                    {index + 1}
+                  </button>
                 ) : null}
                 <span
                   className={`flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold tabular-nums text-muted ${
@@ -324,6 +323,55 @@ export function RankPredictionBoard({
           );
         })}
       </ul>
+
+      {rankPickerIndex != null && !locked ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center md:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-background/70 backdrop-blur-[2px]"
+            aria-label={t("ranks.closeRankPicker")}
+            onClick={() => setRankPickerIndex(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal
+            aria-label={t("ranks.pickRankTitle")}
+            className="relative z-10 w-full max-w-lg rounded-t-2xl border border-border bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-lg"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+            <p className="mb-3 text-center text-sm font-medium">
+              {t("ranks.pickRankTitle")}
+              {byId.get(order[rankPickerIndex]) ? (
+                <span className="mt-0.5 block text-xs font-normal text-muted">
+                  {byId.get(order[rankPickerIndex])!.celebrityName}
+                </span>
+              ) : null}
+            </p>
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
+              {order.map((_, i) => {
+                const active = i === rankPickerIndex;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      moveTo(rankPickerIndex, i);
+                      setRankPickerIndex(null);
+                    }}
+                    className={`flex h-11 items-center justify-center rounded-xl text-sm font-semibold tabular-nums ${
+                      active
+                        ? "bg-accent text-white"
+                        : "border border-border bg-background text-foreground"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {statusText ? (
         <p className="text-sm text-muted" role="status">
