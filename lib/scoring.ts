@@ -9,12 +9,12 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import {
-  scoreSeasonWinnerPoints,
-  SEASON_WINNER_BASE,
-  SEASON_WINNER_PER_WEEK,
-} from "@/lib/season-scoring";
+  resolveScoringRuleset,
+  scoreRankDistanceLegacy,
+  scoreRankPoints,
+} from "@/lib/scoring-rules";
+import { scoreSeasonWinnerPoints } from "@/lib/season-scoring";
 
-export const ELIM_POINTS = 50;
 export {
   scoreSeasonWinnerPoints,
   seasonWinnerWeeksHeld,
@@ -22,17 +22,23 @@ export {
   SEASON_WINNER_PER_WEEK,
 } from "@/lib/season-scoring";
 
-/** Episodes still "upcoming" are treated as not aired — do not award points. */
-const SCORABLE_EPISODE_STATUSES = [EpisodeStatus.PAST, EpisodeStatus.LIVE] as const;
+export {
+  resolveScoringRuleset,
+  scoreRankPoints,
+  SCORING_RULESETS,
+} from "@/lib/scoring-rules";
 
-/** Points for one couple: max(0, n - |predictedRank - actualRank|). */
+/** Legacy helper kept for callers that still need n-minus-distance math. */
 export function scoreRankDistance(
   predictedRank: number,
   actualRank: number,
   n: number,
 ): number {
-  return Math.max(0, n - Math.abs(predictedRank - actualRank));
+  return scoreRankDistanceLegacy(predictedRank, actualRank, n);
 }
+
+/** Episodes still "upcoming" are treated as not aired — do not award points. */
+const SCORABLE_EPISODE_STATUSES = [EpisodeStatus.PAST, EpisodeStatus.LIVE] as const;
 
 export type EpisodeScoreBreakdown = {
   episodeId: string;
@@ -92,6 +98,7 @@ export function scoreEpisodeFromData(input: {
   const { episode, results, predictions, couples, activeWinnerCoupleId } =
     input;
   const coupleName = new Map(couples.map((c) => [c.id, c.celebrityName]));
+  const ruleset = resolveScoringRuleset(episode.episodeNumber);
 
   const elimPred = predictions.find(
     (p) => p.kind === PredictionKind.WEEKLY_ELIMINATION,
@@ -103,7 +110,7 @@ export function scoreEpisodeFromData(input: {
 
   const elimPts =
     eliminatedCoupleId && actualEliminatedIds.includes(eliminatedCoupleId)
-      ? ELIM_POINTS
+      ? ruleset.elimPoints
       : 0;
 
   const actualRanks = buildActualRanks(results, couples);
@@ -126,7 +133,7 @@ export function scoreEpisodeFromData(input: {
       const predictedRank = predictedRanks.get(coupleId) ?? null;
       const points =
         predictedRank != null && n > 0
-          ? scoreRankDistance(predictedRank, actualRank, n)
+          ? scoreRankPoints(predictedRank, actualRank, n, ruleset)
           : 0;
       rankPts += points;
       return {
