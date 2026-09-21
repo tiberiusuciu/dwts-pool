@@ -1,0 +1,61 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/hetzner
+          chmod 600 ~/.ssh/hetzner
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Sync app to server
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_USER }}
+          DEPLOY_PATH: ${{ secrets.HETZNER_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          REMOTE_USER="${USER:-root}"
+          REMOTE_PATH="${DEPLOY_PATH:-/opt/dwts-pool}"
+          ssh -i ~/.ssh/hetzner -o StrictHostKeyChecking=accept-new \
+            "${REMOTE_USER}@${HOST}" "mkdir -p '${REMOTE_PATH}'"
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude 'node_modules/' \
+            --exclude '.next/' \
+            --exclude '.env' \
+            --exclude '.env.local' \
+            -e 'ssh -i ~/.ssh/hetzner -o StrictHostKeyChecking=accept-new' \
+            ./ "${REMOTE_USER}@${HOST}:${REMOTE_PATH}/"
+
+      - name: Run remote deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script_stop: true
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.HETZNER_DEPLOY_PATH }}"
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/dwts-pool}"
+            cd "$DEPLOY_PATH"
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh
