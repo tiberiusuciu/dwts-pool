@@ -1,6 +1,6 @@
 "use server";
 
-import { CoupleStatus, PredictionKind } from "@prisma/client";
+import { CoupleStatus, PredictionKind, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
@@ -82,6 +82,14 @@ export async function savePredictions(
     }
   }
 
+  const eventPayload: Prisma.InputJsonObject = {
+    ...(hasSeason
+      ? { seasonWinnerCoupleId: input.seasonWinnerCoupleId }
+      : {}),
+    ...(hasElim ? { eliminatedCoupleId: input.eliminatedCoupleId } : {}),
+    ...(hasRanks ? { rankOrder: input.rankOrder } : {}),
+  };
+
   await prisma.$transaction(async (tx) => {
     if (hasSeason) {
       const existingWinner = await tx.prediction.findFirst({
@@ -150,27 +158,46 @@ export async function savePredictions(
     }
 
     if (hasRanks) {
-      await tx.prediction.deleteMany({
-        where: {
-          userId,
-          episodeId: input.episodeId,
-          kind: PredictionKind.WEEKLY_RANK,
-        },
-      });
-      await tx.prediction.createMany({
-        data: input.rankOrder!.map((coupleId, index) => ({
-          userId,
-          kind: PredictionKind.WEEKLY_RANK,
-          episodeId: input.episodeId,
-          coupleId,
-          predictedRank: index + 1,
-        })),
-      });
+      // Upsert only — never delete rank rows (preserves createdAt / history)
+      for (const [index, coupleId] of input.rankOrder!.entries()) {
+        const existing = await tx.prediction.findFirst({
+          where: {
+            userId,
+            episodeId: input.episodeId,
+            coupleId,
+            kind: PredictionKind.WEEKLY_RANK,
+          },
+        });
+        if (existing) {
+          await tx.prediction.update({
+            where: { id: existing.id },
+            data: { predictedRank: index + 1 },
+          });
+        } else {
+          await tx.prediction.create({
+            data: {
+              userId,
+              kind: PredictionKind.WEEKLY_RANK,
+              episodeId: input.episodeId,
+              coupleId,
+              predictedRank: index + 1,
+            },
+          });
+        }
+      }
     }
+
+    // Append-only audit trail for timelines (never update/delete these)
+    await tx.predictionEvent.create({
+      data: {
+        userId,
+        episodeId: input.episodeId,
+        payload: eventPayload,
+      },
+    });
   });
 
   revalidatePath("/predict");
   revalidatePath("/");
-  revalidatePath("/live");
   return { ok: true };
 }

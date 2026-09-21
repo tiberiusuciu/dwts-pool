@@ -150,3 +150,22 @@ body {
   animation: none;
 }
 
+/* Rank list reorder — glide rows to their new slots */
+::view-transition-group(.rank-row) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(.rank-row),
+::view-transition-new(.rank-row) {
+  height: 100%;
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(.rank-row) {
+    animation-duration: 0.01ms !important;
+  }
+}
+

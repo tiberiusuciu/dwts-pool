@@ -1,9 +1,13 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { LeaderboardEntry } from "@/lib/scoring";
+import type {
+  EpisodeScoreBreakdown,
+  LeaderboardEntry,
+} from "@/lib/scoring";
 
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) {
@@ -31,6 +35,108 @@ function RankBadge({ rank }: { rank: number }) {
     <span className="flex size-8 items-center justify-center text-sm font-semibold text-muted">
       {rank}
     </span>
+  );
+}
+
+function pts(n: number) {
+  return n > 0 ? `+${n}` : String(n);
+}
+
+function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
+  const [open, setOpen] = useState(false);
+  const elimHit = ep.elimPts > 0;
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-surface/80">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-2.5 py-2 text-left"
+        aria-expanded={open}
+      >
+        <span className="w-7 shrink-0 text-xs font-semibold tabular-nums text-muted">
+          E{ep.episodeNumber}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-xs font-medium">
+          {ep.title}
+        </span>
+        <span className="hidden text-[11px] tabular-nums text-muted sm:inline">
+          {elimHit ? "Elim ✓" : "Elim —"} · Rnk {pts(ep.rankPts)}
+          {ep.seasonPts > 0 ? ` · Sea ${pts(ep.seasonPts)}` : ""}
+        </span>
+        <span className="text-xs font-semibold tabular-nums">
+          {pts(ep.total)}
+        </span>
+        <ChevronDown
+          className={`size-3.5 shrink-0 text-muted transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open ? (
+        <div className="space-y-2 border-t border-border/70 px-2.5 py-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+            <span>
+              Elim pick:{" "}
+              <span
+                className={
+                  elimHit
+                    ? "font-medium text-success"
+                    : "font-medium text-foreground"
+                }
+              >
+                {ep.predictedElimName ?? "—"}
+              </span>
+              {ep.actualElimNames.length > 0 ? (
+                <>
+                  {" "}
+                  · actual {ep.actualElimNames.join(", ")}
+                </>
+              ) : null}
+              <span className="tabular-nums"> ({pts(ep.elimPts)})</span>
+            </span>
+            <span className="tabular-nums">Ranks {pts(ep.rankPts)}</span>
+            {ep.seasonPts > 0 ? (
+              <span className="tabular-nums">Season {pts(ep.seasonPts)}</span>
+            ) : null}
+          </div>
+
+          {ep.ranks.length > 0 ? (
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-muted">
+                  <th className="pb-1 font-medium">Couple</th>
+                  <th className="pb-1 pr-2 text-right font-medium">Pred</th>
+                  <th className="pb-1 pr-2 text-right font-medium">Act</th>
+                  <th className="pb-1 text-right font-medium">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ep.ranks.map((row) => (
+                  <tr key={row.coupleId} className="border-t border-border/50">
+                    <td className="max-w-[9rem] truncate py-1 pr-2 font-medium">
+                      {row.celebrityName}
+                    </td>
+                    <td className="py-1 pr-2 text-right tabular-nums text-muted">
+                      {row.predictedRank ?? "—"}
+                    </td>
+                    <td className="py-1 pr-2 text-right tabular-nums text-muted">
+                      {row.actualRank ?? "—"}
+                    </td>
+                    <td className="py-1 text-right tabular-nums">
+                      {pts(row.points)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-[11px] text-muted">No rank predictions.</p>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -91,6 +197,7 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
             <button
               type="button"
               onClick={() => setOpenId(open ? null : entry.userId)}
+              aria-expanded={open}
               className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-background"
             >
               <RankBadge rank={entry.rank} />
@@ -101,50 +208,22 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
                 {entry.totalPoints}
                 <span className="ml-1 text-xs font-normal text-muted">pts</span>
               </span>
+              <ChevronDown
+                className={`size-4 shrink-0 text-muted transition-transform ${
+                  open ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {open ? (
-              <div className="space-y-4 border-t border-border bg-background/60 px-3 py-3">
+              <div className="space-y-1.5 border-t border-border bg-background/50 px-2.5 py-2.5">
                 {entry.episodes.length === 0 ? (
-                  <p className="text-xs text-muted">No scored episodes yet.</p>
+                  <p className="px-1 text-xs text-muted">
+                    No scored episodes yet.
+                  </p>
                 ) : (
                   entry.episodes.map((ep) => (
-                    <div key={ep.episodeId} className="space-y-2">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-sm font-semibold">
-                          Ep {ep.episodeNumber} · {ep.title}
-                        </p>
-                        <p className="text-xs tabular-nums text-muted">
-                          +{ep.total} pts
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted">
-                        Elim {ep.elimPts > 0 ? `+${ep.elimPts}` : "0"}
-                        {ep.seasonPts > 0
-                          ? ` · Season +${ep.seasonPts}`
-                          : ""}
-                        {` · Ranks +${ep.rankPts}`}
-                      </p>
-                      {ep.ranks.length > 0 ? (
-                        <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                          {ep.ranks.map((s) => (
-                            <li
-                              key={s.coupleId}
-                              className="rounded-lg bg-surface px-2 py-1.5 text-xs"
-                            >
-                              <span className="block truncate font-medium">
-                                {s.celebrityName}
-                              </span>
-                              <span className="tabular-nums text-muted">
-                                #{s.predictedRank ?? "—"} → #
-                                {s.actualRank ?? "—"}
-                                {s.points > 0 ? ` · +${s.points}` : ""}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
+                    <EpisodeBreakdown key={ep.episodeId} ep={ep} />
                   ))
                 )}
               </div>

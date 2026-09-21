@@ -39,7 +39,9 @@ export type EpisodeScoreBreakdown = {
   seasonPts: number;
   total: number;
   eliminatedCoupleId: string | null;
+  predictedElimName: string | null;
   actualEliminatedIds: string[];
+  actualElimNames: string[];
   ranks: {
     coupleId: string;
     celebrityName: string;
@@ -155,7 +157,13 @@ export function scoreEpisodeFromData(input: {
     seasonPts,
     total: elimPts + rankPts + seasonPts,
     eliminatedCoupleId,
+    predictedElimName: eliminatedCoupleId
+      ? (coupleName.get(eliminatedCoupleId) ?? "Unknown")
+      : null,
     actualEliminatedIds,
+    actualElimNames: actualEliminatedIds.map(
+      (id) => coupleName.get(id) ?? "Unknown",
+    ),
     ranks,
   };
 }

@@ -1,0 +1,21 @@
+---
+description: Preserve prediction history — never destroy user prediction data
+alwaysApply: true
+---
+
+# Prediction data safety
+
+User predictions are permanent product history (for scoring and future timelines).
+
+## Rules
+
+1. **Never delete prediction rows** (`Prediction`, `PredictionEvent`) in app code or migrations unless the user explicitly requests a destructive wipe — and even then, export/backup first.
+2. **Never `DELETE FROM "Prediction"`** (or truncate) in migrations to "clean up" kinds/columns. Prefer additive migrations: new columns, new enums, backfills.
+3. **Current state** lives in `Prediction` (upsert / update in place). **History** lives in append-only `PredictionEvent` — write a new event on every save; never update or delete events.
+4. Before any schema change that touches predictions: confirm existing rows remain readable; add columns nullable or with defaults; backfill when needed.
+5. Seed/reset scripts must not wipe `Prediction` / `PredictionEvent` unless rebuilding a disposable local DB and the user asked for a full reset.
+
+## Save path
+
+- Weekly ranks: upsert by `(userId, episodeId, coupleId, WEEKLY_RANK)` — do not `deleteMany` + recreate.
+- Season winner / elim: update existing row or create; always also insert a `PredictionEvent`.

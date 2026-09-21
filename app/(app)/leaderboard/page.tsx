@@ -13,7 +13,7 @@ export default async function LeaderboardPage() {
           Leaderboard
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Tap a player to expand weekly prediction breakdowns.
+          Tap a player, then an episode, to inspect elim picks and ranks.
         </p>
       </div>
       <LeaderboardList entries={entries} />

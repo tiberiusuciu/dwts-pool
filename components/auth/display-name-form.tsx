@@ -10,12 +10,18 @@ export function DisplayNameForm({
   subtitle,
   submitLabel,
   redirectTo = "/",
+  className = "w-full max-w-sm",
+  headingLevel = 1,
+  hideFieldLabel = false,
 }: {
   initialName?: string;
   title: string;
   subtitle: string;
   submitLabel: string;
   redirectTo?: string;
+  className?: string;
+  headingLevel?: 1 | 2;
+  hideFieldLabel?: boolean;
 }) {
   const router = useRouter();
   const { update } = useSession();
@@ -51,14 +57,24 @@ export function DisplayNameForm({
     router.refresh();
   }
 
+  const Heading = headingLevel === 2 ? "h2" : "h1";
+
   return (
-    <div className="mx-auto w-full max-w-sm">
-      <h1 className="font-display text-2xl font-semibold tracking-tight">{title}</h1>
+    <div className={className}>
+      <Heading className="font-display text-xl font-semibold tracking-tight">
+        {title}
+      </Heading>
       <p className="mt-2 text-sm text-muted">{subtitle}</p>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Display name</span>
+          <span
+            className={
+              hideFieldLabel ? "sr-only" : "text-sm font-medium"
+            }
+          >
+            Display name
+          </span>
           <input
             type="text"
             required
@@ -67,7 +83,7 @@ export function DisplayNameForm({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="How others will see you"
-            className="h-12 w-full rounded-xl border border-border bg-surface px-3 text-base outline-none ring-accent focus:ring-2"
+            className="h-12 w-full rounded-xl border border-border bg-background px-3 text-base outline-none ring-accent focus:ring-2"
           />
         </label>
         {error ? <p className="text-sm text-accent">{error}</p> : null}

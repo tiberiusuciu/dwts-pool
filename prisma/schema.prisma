@@ -47,6 +47,7 @@ model User {
   accounts    Account[]
   sessions    Session[]
   predictions Prediction[]
+  predictionEvents PredictionEvent[]
 }
 
 model Account {
@@ -114,6 +115,7 @@ model Episode {
   eliminatedCouples Couple[]       @relation("CoupleEliminatedEpisode")
   actualResults     ActualResult[]
   predictions       Prediction[]
+  predictionEvents  PredictionEvent[]
 }
 
 model ActualResult {
@@ -154,4 +156,23 @@ model Prediction {
   @@index([userId, kind])
   @@index([userId, episodeId, kind])
   @@index([userId, episodeId, coupleId, kind])
+}
+
+/**
+ * Append-only audit log of every prediction save.
+ * Never UPDATE or DELETE these rows — use for historical timelines.
+ */
+model PredictionEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  episodeId String?
+  /** Snapshot of the save payload (season / elim / ranks). */
+  payload   Json
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, episodeId, createdAt])
 }

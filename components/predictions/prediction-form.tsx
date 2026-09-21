@@ -1,9 +1,11 @@
 "use client";
 
+import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { savePredictions } from "@/app/(app)/predict/actions";
+import { usePredictionLock } from "@/hooks/use-prediction-lock";
 import type { CoupleOption } from "@/lib/predictions";
 import {
   SEASON_WINNER_BASE,
@@ -63,16 +65,17 @@ export function PredictionForm({
   episodeTitle,
   episodeNumber,
   finaleEpisodeNumber,
-  locked,
+  lockAtIso,
+  forceLocked = false,
   couples,
   initial,
 }: {
   episodeId: string;
   episodeTitle: string;
   episodeNumber: number;
-  /** Best-known finale / last episode # for points forecast */
   finaleEpisodeNumber: number;
-  locked: boolean;
+  lockAtIso: string;
+  forceLocked?: boolean;
   couples: CoupleOption[];
   initial: {
     seasonWinnerCoupleId: string | null;
@@ -80,6 +83,10 @@ export function PredictionForm({
   };
 }) {
   const router = useRouter();
+  const { locked, label: lockLabel } = usePredictionLock(
+    lockAtIso,
+    forceLocked,
+  );
   const activeIds = useMemo(
     () => new Set(couples.map((c) => c.id)),
     [couples],
@@ -107,7 +114,9 @@ export function PredictionForm({
   const isSwap = savedId != null && dirty;
 
   const fromEpisode =
-    seasonWinnerCoupleId != null && seasonWinnerCoupleId === savedId && savedFrom
+    seasonWinnerCoupleId != null &&
+    seasonWinnerCoupleId === savedId &&
+    savedFrom
       ? savedFrom
       : episodeNumber;
 
@@ -124,6 +133,10 @@ export function PredictionForm({
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (locked) {
+      setError("Predictions are locked");
+      return;
+    }
     if (!canSave || !seasonWinnerCoupleId) return;
     setError(null);
     setMessage(null);
@@ -146,6 +159,7 @@ export function PredictionForm({
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
           Episode {episodeNumber}
+          {locked ? " · Locked" : ` · ${lockLabel}`}
         </p>
         <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
           Season winner
@@ -155,9 +169,19 @@ export function PredictionForm({
           {SEASON_WINNER_PER_WEEK} pts per week held through the finale.
         </p>
         {locked ? (
-          <p className="mt-3 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-muted">
-            Predictions locked (Tue 8pm ET or episode live).
-          </p>
+          <div
+            role="status"
+            className="mt-3 flex items-start gap-3 rounded-xl border border-accent/40 bg-accent-soft px-3 py-3 text-sm text-accent"
+          >
+            <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <div>
+              <p className="font-semibold">Predictions locked</p>
+              <p className="mt-0.5 text-accent/90">
+                Tue 8pm ET has passed (or this episode is live). Your season
+                winner pick can no longer be changed.
+              </p>
+            </div>
+          </div>
         ) : null}
       </div>
 
@@ -176,7 +200,7 @@ export function PredictionForm({
       />
 
       {seasonWinnerCoupleId ? (
-        <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-1">
+        <div className="space-y-1 rounded-xl border border-border bg-surface px-4 py-3">
           <p className="text-sm font-medium text-foreground">
             If you&apos;re right:{" "}
             <span className="tabular-nums text-accent">{forecastPts} pts</span>

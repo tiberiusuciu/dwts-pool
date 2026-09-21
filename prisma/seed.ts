@@ -241,7 +241,7 @@ async function main() {
       await upsertEpisode({
         episodeNumber: ep.episodeNumber,
         title: ep.title,
-        airDate: new Date(`${ep.airDate}T00:00:00.000Z`),
+        airDate: new Date(`${ep.airDate}T12:00:00.000Z`),
         status: ep.status,
         isFinale: ep.isFinale,
       }),

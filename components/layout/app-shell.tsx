@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Radio, Settings, Trophy, Vote } from "lucide-react";
+import { Crown, Home, Settings, Trophy } from "lucide-react";
+
+import {
+  LockCountdownChip,
+  type LockClockProps,
+} from "@/components/layout/lock-countdown-chip";
 
 const NAV = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/predict", label: "Predict", icon: Vote },
-  { href: "/live", label: "Board", icon: Radio },
+  { href: "/predict", label: "Winner", icon: Crown },
   { href: "/leaderboard", label: "Ranks", icon: Trophy },
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
@@ -46,9 +50,11 @@ function StandingChip({
 export function AppShell({
   children,
   standing,
+  lockClock,
 }: {
   children: React.ReactNode;
   standing: { rank: number; totalPoints: number } | null;
+  lockClock: LockClockProps | null;
 }) {
   const pathname = usePathname();
   const current = navIndex(pathname);
@@ -59,11 +65,11 @@ export function AppShell({
         className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-md"
         style={{ viewTransitionName: "site-header" }}
       >
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 md:px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 px-4 md:gap-3 md:px-6">
           <Link
             href="/"
             transitionTypes={["nav-back"]}
-            className="font-display text-lg font-semibold tracking-tight"
+            className="shrink-0 font-display text-lg font-semibold tracking-tight"
           >
             DWTS Pool
           </Link>
@@ -91,7 +97,10 @@ export function AppShell({
             })}
           </nav>
 
-          <StandingChip standing={standing} />
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            {lockClock ? <LockCountdownChip {...lockClock} /> : null}
+            <StandingChip standing={standing} />
+          </div>
         </div>
       </header>
 

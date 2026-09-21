@@ -25,21 +25,22 @@ export type UserPredictionState = {
 
 const ET = "America/New_York";
 
-/** Calendar YYYY-MM-DD for the episode air date in Eastern Time. */
-function etCalendarDate(airDate: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ET,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(airDate);
+/**
+ * Episode.airDate is a calendar date stored as UTC midnight (YYYY-MM-DD).
+ * Read the UTC Y-M-D — formatting in ET would shift it to the prior evening.
+ */
+function airCalendarDate(airDate: Date): string {
+  const y = airDate.getUTCFullYear();
+  const m = String(airDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(airDate.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 /**
  * Lock at 8:00pm America/New_York on the episode's air calendar day.
  */
 export function getEpisodeLockAt(episode: Pick<Episode, "airDate">): Date {
-  const day = etCalendarDate(episode.airDate);
+  const day = airCalendarDate(episode.airDate);
   for (const offset of ["-04:00", "-05:00"] as const) {
     const candidate = new Date(`${day}T20:00:00.000${offset}`);
     const check = new Intl.DateTimeFormat("en-CA", {
@@ -69,19 +70,42 @@ export function isEpisodeLocked(
   return now.getTime() >= getEpisodeLockAt(episode).getTime();
 }
 
+/** Countdown label from a lock instant (ms since epoch). */
+export function formatLockCountdownFromMs(
+  lockAtMs: number,
+  nowMs = Date.now(),
+): string {
+  if (nowMs >= lockAtMs) return "Locked";
+  const ms = lockAtMs - nowMs;
+  const totalHours = Math.floor(ms / 3_600_000);
+  const days = Math.floor(totalHours / 24);
+
+  // ≥ 24h → days + hours
+  if (days >= 1) {
+    return `${days}d ${totalHours % 24}h`;
+  }
+
+  // < 24h → hours, minutes, seconds
+  const hours = totalHours;
+  const mins = Math.floor((ms % 3_600_000) / 60_000);
+  const secs = Math.floor((ms % 60_000) / 1000);
+  return `${hours}h ${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
+}
+
+export function isLockUrgent(
+  lockAtMs: number,
+  nowMs = Date.now(),
+): boolean {
+  const remaining = lockAtMs - nowMs;
+  return remaining > 0 && remaining < 12 * 3_600_000;
+}
+
 export function formatLockCountdown(
   episode: Pick<Episode, "airDate" | "status">,
   now = new Date(),
 ): string {
   if (isEpisodeLocked(episode, now)) return "Locked";
-  const lockAt = getEpisodeLockAt(episode);
-  const ms = lockAt.getTime() - now.getTime();
-  const hours = Math.floor(ms / 3_600_000);
-  const days = Math.floor(hours / 24);
-  if (days >= 1) return `Locks in ${days}d ${hours % 24}h`;
-  const mins = Math.floor((ms % 3_600_000) / 60_000);
-  if (hours >= 1) return `Locks in ${hours}h ${mins}m`;
-  return `Locks in ${Math.max(1, mins)}m`;
+  return formatLockCountdownFromMs(getEpisodeLockAt(episode).getTime(), now.getTime());
 }
 
 export async function getPredictableEpisode() {

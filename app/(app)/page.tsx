@@ -1,14 +1,15 @@
+import { EpisodeStatus } from "@prisma/client";
+
 import { auth } from "@/auth";
 import { EpisodeTimeline } from "@/components/episodes/episode-timeline";
 import { RankPredictionBoard } from "@/components/predictions/rank-prediction-board";
 import { getEpisodesWithResults } from "@/lib/episodes";
 import {
   defaultRankOrder,
-  formatLockCountdown,
   getActiveCouples,
+  getEpisodeLockAt,
   getPredictableEpisode,
   getUserPredictions,
-  isEpisodeLocked,
 } from "@/lib/predictions";
 
 export default async function HomePage() {
@@ -47,7 +48,8 @@ export default async function HomePage() {
         Hey, {name}
       </h1>
       <p className="mt-3 max-w-md text-muted">
-        Season 35 — rank next week&apos;s scoreboard before Tue 8pm ET.
+        Season 35 — rank next week&apos;s scoreboard and pick the elim before Tue
+        8pm ET.
       </p>
 
       {upcoming && userId ? (
@@ -55,10 +57,11 @@ export default async function HomePage() {
           episodeId={upcoming.id}
           episodeTitle={upcoming.title}
           episodeNumber={upcoming.episodeNumber}
-          locked={isEpisodeLocked(upcoming)}
-          lockLabel={formatLockCountdown(upcoming)}
+          lockAtIso={getEpisodeLockAt(upcoming).toISOString()}
+          forceLocked={upcoming.status !== EpisodeStatus.UPCOMING}
           couples={couples}
           initialOrder={rankOrder}
+          initialEliminatedCoupleId={predictions?.eliminatedCoupleId ?? null}
         />
       ) : null}
 

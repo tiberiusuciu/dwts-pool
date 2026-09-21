@@ -28,7 +28,6 @@ async function broadcastEpisode(episodeId: string) {
   if (snapshot) {
     publishLiveUpdate(snapshot);
   }
-  revalidatePath("/live");
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/live");
@@ -160,7 +159,6 @@ export async function calculateAndBroadcastPoints(): Promise<
   const updates = await recalculateAllPoints();
   publishLeaderboardUpdate();
   revalidatePath("/leaderboard");
-  revalidatePath("/live");
   revalidatePath("/");
   revalidatePath("/admin");
 

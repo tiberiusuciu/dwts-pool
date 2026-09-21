@@ -1,10 +1,12 @@
+import { EpisodeStatus } from "@prisma/client";
+
 import { auth } from "@/auth";
 import { PredictionForm } from "@/components/predictions/prediction-form";
 import {
   getActiveCouples,
+  getEpisodeLockAt,
   getPredictableEpisode,
   getUserPredictions,
-  isEpisodeLocked,
 } from "@/lib/predictions";
 import { SEASON_FINALE_EPISODE } from "@/lib/season-scoring";
 
@@ -41,7 +43,8 @@ export default async function PredictPage() {
       episodeTitle={episode.title}
       episodeNumber={episode.episodeNumber}
       finaleEpisodeNumber={SEASON_FINALE_EPISODE}
-      locked={isEpisodeLocked(episode)}
+      lockAtIso={getEpisodeLockAt(episode).toISOString()}
+      forceLocked={episode.status !== EpisodeStatus.UPCOMING}
       couples={couples}
       initial={{
         seasonWinnerCoupleId: initial.seasonWinnerCoupleId,
