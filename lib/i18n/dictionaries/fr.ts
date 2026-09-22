@@ -26,7 +26,7 @@ export const fr = {
     settingsTitle: "Cagnotte",
     settingsSubtitle: "Pot actuel {label}.",
     settingsFootnote:
-      "Après avoir proposé un montant, contactez Camilia ou Tiberiu pour qu’ils puissent le confirmer et l’approuver une fois l’argent reçu.",
+      "Contribuer est facultatif — vous pouvez tout simplement jouer. Si vous proposez un montant, contactez Camilia ou Tiberiu pour qu’ils puissent le confirmer et l’approuver une fois l’argent reçu.",
     offerCta: "Proposer une contribution",
     offerCancel: "Annuler",
     offerSent: "Offre envoyée — en attente de confirmation de l'hôte.",

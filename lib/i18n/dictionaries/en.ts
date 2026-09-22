@@ -23,7 +23,7 @@ export const en = {
     settingsTitle: "Prize pool",
     settingsSubtitle: "Current pot {label}.",
     settingsFootnote:
-      "After you submit an amount, contact Camilia or Tiberiu so they can confirm and approve it once they’ve received the money.",
+      "Contributing is optional — you’re welcome to just play the game. If you do offer an amount, contact Camilia or Tiberiu so they can confirm and approve it once they’ve received the money.",
     offerCta: "Offer contribution",
     offerCancel: "Cancel",
     offerSent: "Offer submitted — waiting for host confirmation.",
