@@ -67,23 +67,25 @@ export const fr = {
     taglineLive:
       "L'épisode est en direct — vos choix sont verrouillés. Installez-vous et regardez.",
     taglineOpen:
-      "Saison 35 — classez le tableau des scores et choisissez l'éliminé avant mardi 20 h HE.",
+      "Saison 35 — classez le tableau des scores et choisissez qui va être éliminé avant mardi 20 h HE.",
   },
   ranks: {
     episodeMeta: "Épisode {number} · {status}",
     statusLive: "En direct",
     statusLocked: "Verrouillé",
     statusUpcoming: "À venir",
-    helpLive: "Votre classement et votre choix d'élimination pour ce soir.",
-    helpLocked: "Classement et élimination sont verrouillés pour cet épisode.",
+    helpLive:
+      "Votre classement verrouillé et votre choix d'éliminé pour ce soir.",
+    helpLocked:
+      "Le classement et le choix d'éliminé sont verrouillés pour cet épisode.",
     helpOpen:
-      "Classez du score le plus élevé au plus bas, et cochez votre éliminé — enregistrement automatique. Verrouillage dans {lockLabel}.",
+      "Classez du score le plus élevé au plus bas, et indiquez qui selon vous va être éliminé — enregistrement automatique. Verrouillage dans {lockLabel}.",
     bannerLiveTitle: "Épisode en direct",
     bannerLockedTitle: "Pronostics verrouillés",
     bannerLiveBody:
       "Les votes sont fermés pendant l'émission. Vos choix ci-dessous sont définitifs.",
     bannerLockedBody:
-      "Mardi 20 h HE est passé. Le classement et l'élimination ne peuvent plus être modifiés.",
+      "Mardi 20 h HE est passé. Le classement et le choix d'éliminé ne peuvent plus être modifiés.",
     elim: "Élim.",
     moveUpAria: "Monter {name}",
     moveDownAria: "Descendre {name}",

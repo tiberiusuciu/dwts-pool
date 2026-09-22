@@ -64,23 +64,23 @@ export const en = {
     taglineLive:
       "Episode is live — your picks are locked. Sit back and watch.",
     taglineOpen:
-      "Season 35 — rank next week's scoreboard and pick the elim before Tue 8pm ET.",
+      "Season 35 — rank next week's scoreboard and pick who will go home before Tue 8pm ET.",
   },
   ranks: {
     episodeMeta: "Episode {number} · {status}",
     statusLive: "Live",
     statusLocked: "Locked",
     statusUpcoming: "Upcoming",
-    helpLive: "Your locked rank and elim pick for tonight.",
-    helpLocked: "Rank and elim picks are locked for this episode.",
+    helpLive: "Your locked ranking and elimination choice for tonight.",
+    helpLocked: "Ranking and elimination picks are locked for this episode.",
     helpOpen:
-      "Rank highest → lowest expected score, and mark your elim pick — saves automatically. Locks in {lockLabel}.",
+      "Rank highest → lowest expected score, and mark who you think will go home — saves automatically. Locks in {lockLabel}.",
     bannerLiveTitle: "Episode is live",
     bannerLockedTitle: "Predictions locked",
     bannerLiveBody:
       "Voting is closed while the show is on. Your picks below are final.",
     bannerLockedBody:
-      "Tue 8pm ET has passed. Rank and elim picks can no longer be changed.",
+      "Tue 8pm ET has passed. Ranking and elimination picks can no longer be changed.",
     elim: "Elim",
     moveUpAria: "Move {name} up",
     moveDownAria: "Move {name} down",
