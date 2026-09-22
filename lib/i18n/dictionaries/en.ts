@@ -184,6 +184,8 @@ export const en = {
     email: "Email",
     password: "Password",
     passwordHint: "At least 8 characters",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
     signIn: "Sign in",
     signingIn: "Signing in…",
     createAccount: "Create account",

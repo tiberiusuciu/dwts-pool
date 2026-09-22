@@ -189,6 +189,8 @@ export const fr = {
     email: "Courriel",
     password: "Mot de passe",
     passwordHint: "Au moins 8 caractères",
+    showPassword: "Afficher le mot de passe",
+    hidePassword: "Masquer le mot de passe",
     signIn: "Se connecter",
     signingIn: "Connexion…",
     createAccount: "Créer le compte",

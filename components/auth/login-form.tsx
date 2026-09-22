@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { PasswordInput } from "@/components/auth/password-input";
 import { useT } from "@/components/i18n/locale-provider";
 
 export function LoginForm() {
@@ -58,13 +59,11 @@ export function LoginForm() {
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">{t("auth.password")}</span>
-          <input
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-12 w-full rounded-xl border border-border bg-surface px-3 text-base outline-none ring-accent focus:ring-2"
+            onChange={setPassword}
           />
         </label>
         {error ? <p className="text-sm text-accent">{error}</p> : null}
