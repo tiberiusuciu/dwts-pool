@@ -30,7 +30,9 @@ export const metadata: Metadata = {
   applicationName: "DWTS Pool",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    // Opaque status bar — avoids content starting under the system UI in
+    // installed (Add to Home Screen) mode, which clipped the app header.
+    statusBarStyle: "black",
     title: "DWTS Pool",
   },
   formatDetection: {
@@ -62,6 +64,8 @@ export async function generateViewport(): Promise<Viewport> {
   return {
     width: "device-width",
     initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
     viewportFit: "cover",
     themeColor: THEME_CHROME[resolved],
   };
@@ -85,7 +89,7 @@ export default async function RootLayout({
       data-theme={resolved}
       style={{ colorScheme: resolved }}
       suppressHydrationWarning
-      className={`${dmSans.variable} ${syne.variable} h-dvh antialiased`}
+      className={`${dmSans.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="flex min-h-dvh flex-col font-sans">
         <ThemeProvider>

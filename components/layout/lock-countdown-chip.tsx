@@ -28,7 +28,7 @@ export function LockCountdownChip({
     <Link
       href="/"
       transitionTypes={["nav-back"]}
-      className={`inline-flex max-w-[7.5rem] shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors sm:max-w-none sm:gap-1.5 sm:px-2.5 sm:py-1.5 sm:text-xs ${tone}`}
+      className={`inline-flex max-w-[6.5rem] shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold tabular-nums transition-colors sm:max-w-[7.5rem] sm:gap-1.5 sm:px-2.5 sm:py-1.5 sm:text-xs xl:max-w-none ${tone}`}
       aria-label={
         locked
           ? t("lock.chipAriaLocked")

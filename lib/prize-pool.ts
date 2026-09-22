@@ -1,11 +1,14 @@
 import type { Locale } from "@/lib/i18n/types";
 
+export type PrizeContributionStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export type PrizeContributionRow = {
   id: string;
   amountCents: number;
   userId: string | null;
   guestName: string | null;
   note: string | null;
+  status: PrizeContributionStatus;
   /** ISO string for client components. */
   createdAt: string;
   user: { id: string; displayName: string | null; email: string } | null;

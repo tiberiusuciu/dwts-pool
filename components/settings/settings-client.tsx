@@ -6,8 +6,10 @@ import { signOut } from "next-auth/react";
 import { DisplayNameForm } from "@/components/auth/display-name-form";
 import { LocalePicker } from "@/components/i18n/locale-picker";
 import { useT } from "@/components/i18n/locale-provider";
+import { PrizeOfferForm } from "@/components/settings/prize-offer-form";
 import { ThemePicker } from "@/components/theme/theme-picker";
 import type { CoupleOption } from "@/lib/couple";
+import type { PrizeContributionRow } from "@/lib/prize-pool";
 
 export function SettingsClient({
   email,
@@ -15,12 +17,16 @@ export function SettingsClient({
   displayName,
   rootingForCoupleId,
   couples,
+  prizePoolCents,
+  myOffers,
 }: {
   email: string | null;
   isAdmin: boolean;
   displayName: string;
   rootingForCoupleId: string | null;
   couples: CoupleOption[];
+  prizePoolCents: number;
+  myOffers: PrizeContributionRow[];
 }) {
   const t = useT();
 
@@ -56,6 +62,10 @@ export function SettingsClient({
           hideFieldLabel
           mode="autosave"
         />
+
+        <div className="border-t border-border pt-6">
+          <PrizeOfferForm poolCents={prizePoolCents} offers={myOffers} />
+        </div>
 
         <div className="space-y-3 border-t border-border pt-6">
           {isAdmin ? (

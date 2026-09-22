@@ -3,7 +3,7 @@ import "server-only";
 import { PrismaClient } from "@prisma/client";
 
 /** Bump when Prisma schema fields change so dev HMR drops a stale client. */
-const PRISMA_CLIENT_GEN = 2;
+const PRISMA_CLIENT_GEN = 3;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

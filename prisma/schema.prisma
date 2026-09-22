@@ -30,6 +30,12 @@ enum PredictionKind {
   WEEKLY_RANK
 }
 
+enum PrizeContributionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -193,7 +199,7 @@ model AppSettings {
 
 /** Who put money into the prize pool (player or outside guest). */
 model PrizeContribution {
-  id          String   @id @default(cuid())
+  id          String                   @id @default(cuid())
   /** Amount in CAD cents. */
   amountCents Int
   /** Linked pool player, if any. */
@@ -201,10 +207,12 @@ model PrizeContribution {
   /** Free-form name when the contributor is not a pool user. */
   guestName   String?
   note        String?
-  createdAt   DateTime @default(now())
+  status      PrizeContributionStatus  @default(APPROVED)
+  createdAt   DateTime                 @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([userId])
+  @@index([status])
 }

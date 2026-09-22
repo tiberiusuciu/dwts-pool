@@ -75,10 +75,12 @@ function StandingChip({
       })}
     >
       <span className="text-accent">#{standing.rank}</span>
-      <span className={`text-muted ${cheer ? "inline" : "hidden sm:inline"}`}>
+      <span
+        className={`text-muted ${cheer ? "inline" : "hidden sm:inline md:hidden xl:inline"}`}
+      >
         ·
       </span>
-      <span className={cheer ? "inline" : "hidden sm:inline"}>
+      <span className={cheer ? "inline" : "hidden sm:inline md:hidden xl:inline"}>
         {standing.totalPoints}
         <span className="ml-0.5 text-muted">{t("nav.pts")}</span>
       </span>
@@ -130,18 +132,33 @@ export function AppShell({
     };
   }, [router]);
 
+  // Installed PWAs can leave the document scrolled so the fixed shell (and
+  // header) sit above the visible viewport. Keep window scroll pinned at 0.
+  useEffect(() => {
+    const pin = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    pin();
+    window.addEventListener("scroll", pin, { passive: true });
+    return () => window.removeEventListener("scroll", pin);
+  }, [pathname]);
+
   return (
-    <div className="flex h-dvh flex-col overflow-hidden overscroll-none">
+    <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)]">
       <header
-        className="z-40 shrink-0 border-b border-border bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-md"
+        className="z-40 shrink-0 border-b border-border bg-surface/90 backdrop-blur-md"
         style={{ viewTransitionName: "site-header" }}
       >
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-3 md:px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 md:gap-3 md:px-6">
           <Link
             href="/"
             transitionTypes={["nav-back"]}
             aria-label={t("nav.brand")}
-            className="inline-flex shrink-0 items-center gap-2 font-display text-lg font-semibold tracking-tight md:justify-self-start"
+            className="inline-flex shrink-0 items-center gap-2 font-display text-lg font-semibold tracking-tight"
           >
             <DiscoBall className="shrink-0" party={liveParty} />
             <span className="hidden whitespace-nowrap sm:inline">
@@ -149,30 +166,36 @@ export function AppShell({
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 justify-self-center md:flex">
-            {NAV.map(({ href, labelKey, icon: Icon }, index) => {
-              const active = pathname === href;
-              const types =
-                index >= current ? ["nav-forward"] : ["nav-back"];
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  transitionTypes={types}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    active
-                      ? "bg-accent-soft text-accent"
-                      : "text-muted hover:bg-background hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="size-4" strokeWidth={active ? 2.25 : 1.75} />
-                  {t(labelKey)}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="ml-auto flex min-w-0 items-center justify-end gap-1 sm:gap-1.5 md:gap-2">
+            <nav className="hidden items-center gap-0.5 md:flex">
+              {NAV.map(({ href, labelKey, icon: Icon }, index) => {
+                const active = pathname === href;
+                const types =
+                  index >= current ? ["nav-forward"] : ["nav-back"];
+                const label = t(labelKey);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    transitionTypes={types}
+                    aria-label={label}
+                    title={label}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm transition-colors xl:gap-2 xl:px-3 ${
+                      active
+                        ? "bg-accent-soft text-accent"
+                        : "text-muted hover:bg-background hover:text-foreground"
+                    }`}
+                  >
+                    <Icon
+                      className="size-4 shrink-0"
+                      strokeWidth={active ? 2.25 : 1.75}
+                    />
+                    <span className="hidden xl:inline">{label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
 
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5 md:flex-initial md:justify-self-end md:gap-2">
             <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
             <StandingChip standing={standing} />

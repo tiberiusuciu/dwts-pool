@@ -3,8 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 
 import {
+  approvePrizeContribution,
   createPrizeContribution,
   deletePrizeContribution,
+  rejectPrizeContribution,
 } from "@/app/(app)/admin/settings-actions";
 import { useLocale, useT } from "@/components/i18n/locale-provider";
 import {
@@ -47,6 +49,19 @@ export function PrizePoolForm({
     [initialCents, locale],
   );
 
+  const pendingRows = useMemo(
+    () => contributions.filter((row) => row.status === "PENDING"),
+    [contributions],
+  );
+  const approvedRows = useMemo(
+    () => contributions.filter((row) => row.status === "APPROVED"),
+    [contributions],
+  );
+  const rejectedRows = useMemo(
+    () => contributions.filter((row) => row.status === "REJECTED"),
+    [contributions],
+  );
+
   function onAdd(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -69,6 +84,32 @@ export function PrizePoolForm({
     });
   }
 
+  function onApprove(id: string) {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await approvePrizeContribution(id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMessage(t("prize.approved"));
+    });
+  }
+
+  function onReject(id: string) {
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await rejectPrizeContribution(id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMessage(t("prize.rejected"));
+    });
+  }
+
   function onRemove(id: string) {
     setError(null);
     setMessage(null);
@@ -79,6 +120,14 @@ export function PrizePoolForm({
         return;
       }
       setMessage(t("prize.removed"));
+    });
+  }
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString(dateLocale, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   }
 
@@ -182,47 +231,137 @@ export function PrizePoolForm({
       {error ? <p className="text-sm text-accent">{error}</p> : null}
       {message ? <p className="text-sm text-muted">{message}</p> : null}
 
-      <div className="border-t border-border pt-3">
-        <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
-          {t("prize.contributionsHeading")}
-        </h3>
-        {contributions.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">{t("prize.empty")}</p>
-        ) : (
-          <ul className="mt-2 divide-y divide-border">
-            {contributions.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-center gap-3 py-2.5 text-sm"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
-                    {contributorLabel(row, t("prize.unknownContributor"))}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {new Date(row.createdAt).toLocaleDateString(dateLocale, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                    {row.note ? ` · ${row.note}` : ""}
-                  </p>
-                </div>
-                <span className="shrink-0 font-semibold tabular-nums text-gold">
-                  {formatPrizePool(row.amountCents, locale)}
-                </span>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => onRemove(row.id)}
-                  className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted hover:bg-background hover:text-accent disabled:opacity-50"
+      <div className="space-y-4 border-t border-border pt-3">
+        <div>
+          <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
+            {t("prize.pendingHeading")}
+          </h3>
+          {pendingRows.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">{t("prize.pendingEmpty")}</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-border">
+              {pendingRows.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center gap-2 py-2.5 text-sm sm:gap-3"
                 >
-                  {t("prize.remove")}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                    <p className="truncate font-medium">
+                      {contributorLabel(row, t("prize.unknownContributor"))}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {formatDate(row.createdAt)}
+                      {row.note ? ` · ${row.note}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-semibold tabular-nums text-gold">
+                    {formatPrizePool(row.amountCents, locale)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onApprove(row.id)}
+                    className="shrink-0 rounded-lg bg-accent-soft px-2 py-1 text-xs font-medium text-accent hover:bg-accent hover:text-white disabled:opacity-50"
+                  >
+                    {t("prize.approve")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onReject(row.id)}
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted hover:bg-background hover:text-accent disabled:opacity-50"
+                  >
+                    {t("prize.reject")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onRemove(row.id)}
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted hover:bg-background hover:text-accent disabled:opacity-50"
+                  >
+                    {t("prize.remove")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
+            {t("prize.approvedHeading")}
+          </h3>
+          {approvedRows.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">{t("prize.empty")}</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-border">
+              {approvedRows.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex items-center gap-3 py-2.5 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {contributorLabel(row, t("prize.unknownContributor"))}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {formatDate(row.createdAt)}
+                      {row.note ? ` · ${row.note}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-semibold tabular-nums text-gold">
+                    {formatPrizePool(row.amountCents, locale)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onRemove(row.id)}
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted hover:bg-background hover:text-accent disabled:opacity-50"
+                  >
+                    {t("prize.remove")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {rejectedRows.length > 0 ? (
+          <div>
+            <h3 className="text-xs font-medium uppercase tracking-[0.12em] text-muted">
+              {t("prize.statusRejected")}
+            </h3>
+            <ul className="mt-2 divide-y divide-border">
+              {rejectedRows.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex items-center gap-3 py-2.5 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-muted">
+                      {contributorLabel(row, t("prize.unknownContributor"))}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {formatDate(row.createdAt)}
+                      {row.note ? ` · ${row.note}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-semibold tabular-nums text-muted">
+                    {formatPrizePool(row.amountCents, locale)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onRemove(row.id)}
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs text-muted hover:bg-background hover:text-accent disabled:opacity-50"
+                  >
+                    {t("prize.remove")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </section>
   );

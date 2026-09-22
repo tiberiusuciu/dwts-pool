@@ -1,6 +1,6 @@
 "use server";
 
-import { Role } from "@prisma/client";
+import { PrizeContributionStatus, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
@@ -8,6 +8,7 @@ import {
   addPrizeContribution,
   parseDollarAmount,
   removePrizeContribution,
+  setPrizeContributionStatus,
 } from "@/lib/app-settings";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -61,6 +62,7 @@ export async function createPrizeContribution(input: {
       userId: isGuest ? null : input.userId,
       guestName: isGuest ? guestName : null,
       note: input.note,
+      status: PrizeContributionStatus.APPROVED,
     });
   } catch (error) {
     return {
@@ -69,6 +71,52 @@ export async function createPrizeContribution(input: {
         error instanceof Error
           ? error.message
           : "Could not save contribution. Run prisma generate/migrate.",
+    };
+  }
+
+  revalidatePrizePaths();
+  return { ok: true };
+}
+
+export async function approvePrizeContribution(
+  id: string,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) {
+    return { ok: false, error: "Admin only" };
+  }
+
+  try {
+    await setPrizeContributionStatus(id, PrizeContributionStatus.APPROVED);
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not approve contribution",
+    };
+  }
+
+  revalidatePrizePaths();
+  return { ok: true };
+}
+
+export async function rejectPrizeContribution(
+  id: string,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) {
+    return { ok: false, error: "Admin only" };
+  }
+
+  try {
+    await setPrizeContributionStatus(id, PrizeContributionStatus.REJECTED);
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not decline contribution",
     };
   }
 
