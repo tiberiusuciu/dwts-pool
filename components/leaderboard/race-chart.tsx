@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useT } from "@/components/i18n/locale-provider";
+import { CrowningConfetti } from "@/components/live/crowning-confetti";
 import { LivePulse } from "@/components/live/live-pulse";
 import type { RaceChartData } from "@/lib/race-snapshots";
 
@@ -37,9 +38,14 @@ export function RaceChart({ data, live = false }: Props) {
   const svgId = useId().replace(/:/g, "");
   const [flash, setFlash] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [crowningId, setCrowningId] = useState<string | null>(null);
   const [display, setDisplay] = useState(data);
   const displayRef = useRef(data);
   const yMaxRef = useRef(seriesYMax(data));
+  const prevLeaderRef = useRef<string | null>(null);
+  const crownTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const rafRef = useRef(0);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -52,6 +58,24 @@ export function RaceChart({ data, live = false }: Props) {
   useEffect(() => {
     displayRef.current = display;
   }, [display]);
+
+  useEffect(() => {
+    if (!(live && data.projected)) return;
+    const leaderId = seriesLeaderId(data);
+    const prev = prevLeaderRef.current;
+    if (leaderId && prev && prev !== leaderId) {
+      if (crownTimerRef.current) clearTimeout(crownTimerRef.current);
+      setCrowningId(leaderId);
+      crownTimerRef.current = setTimeout(() => setCrowningId(null), 5000);
+    }
+    if (leaderId) prevLeaderRef.current = leaderId;
+  }, [dataKey, data, live]);
+
+  useEffect(() => {
+    return () => {
+      if (crownTimerRef.current) clearTimeout(crownTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!live) return;
@@ -153,7 +177,7 @@ export function RaceChart({ data, live = false }: Props) {
       } ${live && display.projected ? "race-chart--live" : ""}`}
     >
       <div className="race-chart-particles pointer-events-none absolute inset-0" aria-hidden>
-        {Array.from({ length: live && display.projected ? 28 : 18 }).map((_, i) => (
+        {Array.from({ length: 18 }).map((_, i) => (
           <span key={i} className={`race-particle race-particle-${i % 6}`} />
         ))}
       </div>
@@ -406,7 +430,7 @@ export function RaceChart({ data, live = false }: Props) {
         </svg>
       </div>
 
-      <ul className="relative z-10 mt-3 flex flex-wrap gap-x-4 gap-y-2">
+      <ul className="relative z-10 mt-3 flex flex-wrap gap-x-4 gap-y-2 overflow-visible">
         {display.players.map((p) => {
           const last = display.points[display.points.length - 1];
           const pts = last?.pointsByUser[p.userId] ?? 0;
@@ -421,20 +445,23 @@ export function RaceChart({ data, live = false }: Props) {
                 isLeader || hoveredId === p.userId
                   ? "font-semibold text-foreground"
                   : "text-muted"
-              } ${dimmed ? "opacity-35" : "opacity-100"}`}
+              } ${dimmed && crowningId !== p.userId ? "opacity-35" : "opacity-100"} ${
+                crowningId === p.userId ? "race-legend-crowning z-20" : ""
+              }`}
             >
+              {crowningId === p.userId ? <CrowningConfetti count={26} /> : null}
               <span
-                className="size-2.5 rounded-full"
+                className="relative z-[3] size-2.5 shrink-0 rounded-full"
                 style={{ background: colorForUser(p.userId) }}
               />
-              {p.displayName}
-              <span className="tabular-nums opacity-80">
+              <span className="relative z-[3]">{p.displayName}</span>
+              <span className="relative z-[3] tabular-nums opacity-80">
                 {Math.round(pts)}{" "}
                 <span className="text-muted">{t("common.pts")}</span>
               </span>
               {isLeader ? (
                 <Crown
-                  className="size-3.5 text-[#f5c518]"
+                  className="relative z-[3] size-3.5 text-[#f5c518]"
                   fill="#f5c518"
                   strokeWidth={1}
                 />
@@ -563,6 +590,21 @@ function seriesYMax(data: RaceChartData) {
     }
   }
   return yMax;
+}
+
+function seriesLeaderId(data: RaceChartData): string | null {
+  const last = data.points[data.points.length - 1];
+  if (!last) return null;
+  let leaderId: string | null = null;
+  let best = -1;
+  for (const p of data.players) {
+    const v = last.pointsByUser[p.userId] ?? 0;
+    if (v > best) {
+      best = v;
+      leaderId = p.userId;
+    }
+  }
+  return leaderId;
 }
 
 function seriesKey(data: RaceChartData) {

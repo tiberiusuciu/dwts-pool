@@ -773,23 +773,21 @@ body {
   }
 }
 
-/* Amped atmosphere — only while an episode is LIVE */
+/* Milder atmosphere — only while an episode is LIVE */
 .race-chart--live .race-chart-shimmer {
-  opacity: 0.55;
-  animation: race-shimmer-loop 2.8s linear infinite;
+  opacity: 0.28;
+  animation: race-shimmer-loop 4.5s linear infinite;
 }
 
 .race-chart--live .race-particle {
-  width: 4px;
-  height: 4px;
-  opacity: 0.55;
-  animation: race-float-live 3.6s ease-in-out infinite;
-  box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 55%, transparent);
+  opacity: 0.45;
+  animation: race-float-live 5.5s ease-in-out infinite;
+  box-shadow: 0 0 4px color-mix(in srgb, var(--gold) 35%, transparent);
 }
 
 .race-chart--live .race-particle:nth-child(odd) {
   animation-name: race-drift-live;
-  animation-duration: 4.2s;
+  animation-duration: 6s;
 }
 
 .race-chart--live .race-particle:nth-child(3n) {
@@ -800,14 +798,10 @@ body {
   0%,
   100% {
     transform: translate(0, 0) scale(1);
-    opacity: 0.35;
+    opacity: 0.28;
   }
-  35% {
-    transform: translate(6px, -18px) scale(1.7);
-    opacity: 0.9;
-  }
-  70% {
-    transform: translate(-8px, -8px) scale(1.2);
+  50% {
+    transform: translate(2px, -6px) scale(1.25);
     opacity: 0.55;
   }
 }
@@ -815,12 +809,12 @@ body {
 @keyframes race-drift-live {
   0%,
   100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    opacity: 0.3;
+    transform: translate(0, 0) scale(1);
+    opacity: 0.25;
   }
   50% {
-    transform: translate(-12px, -22px) scale(1.85) rotate(25deg);
-    opacity: 0.95;
+    transform: translate(-3px, -7px) scale(1.3);
+    opacity: 0.5;
   }
 }
 
@@ -859,7 +853,7 @@ body {
   border-radius: inherit;
 }
 
-.leaderboard-confetti {
+.crowning-confetti {
   pointer-events: none;
   position: absolute;
   inset: 0;
@@ -868,7 +862,7 @@ body {
   border-radius: inherit;
 }
 
-.leaderboard-confetti span {
+.crowning-confetti span {
   position: absolute;
   top: -8%;
   width: 5px;
@@ -876,22 +870,22 @@ body {
   border-radius: 1px;
   background: var(--gold);
   opacity: 0.9;
-  animation: leaderboard-confetti-fall 5s linear forwards;
+  animation: crowning-confetti-fall 5s linear forwards;
   box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 70%, transparent);
 }
 
-.leaderboard-confetti span:nth-child(odd) {
+.crowning-confetti span:nth-child(odd) {
   width: 4px;
   height: 4px;
   border-radius: 9999px;
   background: #ffe566;
 }
 
-.leaderboard-confetti span:nth-child(3n) {
+.crowning-confetti span:nth-child(3n) {
   background: #ffc1d1;
 }
 
-.leaderboard-confetti span:nth-child(4n) {
+.crowning-confetti span:nth-child(4n) {
   background: #fff4b8;
 }
 
@@ -904,7 +898,7 @@ body {
   }
 }
 
-@keyframes leaderboard-confetti-fall {
+@keyframes crowning-confetti-fall {
   0% {
     transform: translate3d(0, -10%, 0) rotate(0deg);
     opacity: 0;
@@ -918,6 +912,45 @@ body {
   }
 }
 
+/* Dethrone burst on race-chart legend chip */
+.race-legend-crowning {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  padding: 0.2rem 0.45rem;
+  margin: -0.2rem -0.45rem;
+  border-radius: 9999px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 50%, transparent),
+    0 0 18px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+
+.race-legend-crowning::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    color-mix(in srgb, var(--gold) 35%, transparent) 50%,
+    transparent 75%
+  );
+  background-size: 220% 100%;
+  animation: leaderboard-gold-shimmer 1.1s ease-in-out infinite;
+}
+
+.race-legend-crowning .crowning-confetti {
+  inset: -40px -12px -28px -12px;
+  overflow: visible;
+}
+
+.race-legend-crowning .crowning-confetti span {
+  animation-duration: 5s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .race-chart-flash,
   .race-chart-flash .race-chart-shimmer,
@@ -925,7 +958,8 @@ body {
   .race-chart--live .race-chart-shimmer,
   .race-chart--live .race-particle,
   .leaderboard-crowning::after,
-  .leaderboard-confetti span {
+  .race-legend-crowning::after,
+  .crowning-confetti span {
     animation: none;
   }
 }

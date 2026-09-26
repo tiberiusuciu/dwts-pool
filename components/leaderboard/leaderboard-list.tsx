@@ -1,10 +1,11 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useT } from "@/components/i18n/locale-provider";
+import { CrowningConfetti } from "@/components/live/crowning-confetti";
 import type {
   EpisodeScoreBreakdown,
   LeaderboardEntry,
@@ -164,25 +165,6 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
           )}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function CrowningConfetti() {
-  return (
-    <div className="leaderboard-confetti" aria-hidden>
-      {Array.from({ length: 22 }).map((_, i) => (
-        <span
-          key={i}
-          style={
-            {
-              left: `${4 + ((i * 17) % 92)}%`,
-              animationDelay: `${(i % 10) * 0.12}s`,
-              "--dx": `${(i % 2 === 0 ? 1 : -1) * (8 + (i % 7) * 4)}px`,
-            } as CSSProperties
-          }
-        />
-      ))}
     </div>
   );
 }
