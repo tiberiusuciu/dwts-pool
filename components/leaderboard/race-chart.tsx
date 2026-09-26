@@ -37,22 +37,33 @@ export function RaceChart({ data, live = false }: Props) {
   const [flash, setFlash] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [display, setDisplay] = useState(data);
-  const prevRef = useRef(data);
+  const displayRef = useRef(data);
+  const yMaxRef = useRef(seriesYMax(data));
+  const rafRef = useRef(0);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const dataKey = useMemo(() => seriesKey(data), [data]);
   const reduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
+    displayRef.current = display;
+  }, [display]);
+
+  useEffect(() => {
     if (!live) return;
     let source: EventSource | null = null;
     let poll: ReturnType<typeof setInterval> | undefined;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => router.refresh(), 120);
+    };
     try {
       source = new EventSource("/api/live/stream?scope=leaderboard");
-      source.onmessage = () => {
-        setFlash(true);
-        router.refresh();
-        window.setTimeout(() => setFlash(false), 700);
-      };
+      source.onmessage = () => scheduleRefresh();
       source.onerror = () => {
         source?.close();
         source = null;
@@ -64,60 +75,65 @@ export function RaceChart({ data, live = false }: Props) {
     return () => {
       source?.close();
       if (poll) clearInterval(poll);
+      if (refreshTimer) clearTimeout(refreshTimer);
     };
   }, [live, router]);
 
   useEffect(() => {
     if (reduced) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
       setDisplay(data);
-      prevRef.current = data;
-      return;
-    }
-    const from = prevRef.current;
-    const to = data;
-    if (
-      from.points.length === to.points.length &&
-      from.points.every(
-        (p, i) =>
-          p.x === to.points[i]?.x &&
-          JSON.stringify(p.pointsByUser) ===
-            JSON.stringify(to.points[i]?.pointsByUser),
-      )
-    ) {
+      displayRef.current = data;
+      yMaxRef.current = seriesYMax(data);
       return;
     }
 
+    const from = displayRef.current;
+    const to = data;
+    yMaxRef.current = Math.max(
+      seriesYMax(from),
+      seriesYMax(to),
+      yMaxRef.current,
+    );
+
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     setFlash(true);
+    flashTimerRef.current = setTimeout(() => setFlash(false), 520);
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     const start = performance.now();
-    const dur = 420;
-    let raf = 0;
+    const dur = 700;
+    let cancelled = false;
+
     const tick = (now: number) => {
+      if (cancelled) return;
       const u = Math.min(1, (now - start) / dur);
-      const e = 1 - Math.pow(1 - u, 3);
-      const interpPoints = to.points.map((pt, i) => {
-        const prev = from.points[Math.min(i, from.points.length - 1)];
-        const pointsByUser: Record<string, number> = {};
-        for (const player of to.players) {
-          const a = prev?.pointsByUser[player.userId] ?? 0;
-          const b = pt.pointsByUser[player.userId] ?? 0;
-          pointsByUser[player.userId] = a + (b - a) * e;
-        }
-        return { ...pt, pointsByUser };
-      });
-      setDisplay({ ...to, points: interpPoints });
-      if (u < 1) raf = requestAnimationFrame(tick);
-      else {
-        prevRef.current = to;
+      const e = u * u * (3 - 2 * u);
+      const interp = interpolateSeries(from, to, e);
+      displayRef.current = interp;
+      setDisplay(interp);
+      if (u < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        displayRef.current = to;
+        yMaxRef.current = seriesYMax(to);
         setDisplay(to);
-        setFlash(false);
+        rafRef.current = 0;
       }
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [data, reduced]);
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    };
+    // dataKey: ignore identity-only refreshes that would cancel mid-tween
+  }, [dataKey, data, reduced]);
 
   const chart = useMemo(
-    () => layoutChart(display),
+    () => layoutChart(display, yMaxRef.current),
     [display],
   );
 
@@ -384,19 +400,14 @@ export function RaceChart({ data, live = false }: Props) {
   );
 }
 
-function layoutChart(data: RaceChartData) {
+function layoutChart(data: RaceChartData, lockedYMax?: number) {
   const width = 640;
   const height = 260;
   const pad = { t: 36, r: 28, b: 36, l: 36 };
   const plotW = width - pad.l - pad.r;
   const plotH = height - pad.t - pad.b;
 
-  let yMax = 1;
-  for (const pt of data.points) {
-    for (const v of Object.values(pt.pointsByUser)) {
-      if (v > yMax) yMax = v;
-    }
-  }
+  let yMax = lockedYMax && lockedYMax > 0 ? lockedYMax : seriesYMax(data);
   yMax = Math.ceil(yMax / 5) * 5 || 10;
 
   const xs = data.points.map((p) => p.x);
@@ -468,6 +479,57 @@ function layoutChart(data: RaceChartData) {
 
 function bubbleWidth(name: string) {
   return Math.min(160, Math.max(56, name.length * 7.2 + 20));
+}
+
+function seriesYMax(data: RaceChartData) {
+  let yMax = 1;
+  for (const pt of data.points) {
+    for (const v of Object.values(pt.pointsByUser)) {
+      if (v > yMax) yMax = v;
+    }
+  }
+  return yMax;
+}
+
+function seriesEqual(a: RaceChartData, b: RaceChartData) {
+  return seriesKey(a) === seriesKey(b);
+}
+
+function seriesKey(data: RaceChartData) {
+  return JSON.stringify({
+    mode: data.mode,
+    episodeId: data.episodeId ?? null,
+    players: data.players.map((p) => p.userId),
+    points: data.points.map((p) => [p.x, p.pointsByUser]),
+  });
+}
+
+/** Interpolate by x-key so historical vertices stay put when a new point is appended. */
+function interpolateSeries(
+  from: RaceChartData,
+  to: RaceChartData,
+  e: number,
+): RaceChartData {
+  const fromByX = new Map(from.points.map((p) => [p.x, p]));
+  const points = to.points.map((pt) => {
+    const prev = fromByX.get(pt.x);
+    // New x: ease from previous tip / zero toward the new value
+    const fallbackX =
+      from.points.length > 0
+        ? from.points[from.points.length - 1]!
+        : undefined;
+    const pointsByUser: Record<string, number> = {};
+    for (const player of to.players) {
+      const id = player.userId;
+      const b = pt.pointsByUser[id] ?? 0;
+      const a = prev
+        ? (prev.pointsByUser[id] ?? 0)
+        : (fallbackX?.pointsByUser[id] ?? 0);
+      pointsByUser[id] = a + (b - a) * e;
+    }
+    return { ...pt, pointsByUser };
+  });
+  return { ...to, points };
 }
 
 export function RaceChartSection({
