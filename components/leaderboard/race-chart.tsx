@@ -571,30 +571,33 @@ function seriesKey(data: RaceChartData) {
   });
 }
 
-/** Interpolate by x-key so historical vertices stay put when a new point is appended. */
+/** Interpolate by x-key so historical vertices stay put when a new point is appended.
+ * New tips ease out from the previous tip in both x and y so the axis grows as an extension. */
 function interpolateSeries(
   from: RaceChartData,
   to: RaceChartData,
   e: number,
 ): RaceChartData {
   const fromByX = new Map(from.points.map((p) => [p.x, p]));
+  const fromLast =
+    from.points.length > 0 ? from.points[from.points.length - 1]! : undefined;
   const points = to.points.map((pt) => {
     const prev = fromByX.get(pt.x);
-    // New x: ease from previous tip / zero toward the new value
-    const fallbackX =
-      from.points.length > 0
-        ? from.points[from.points.length - 1]!
-        : undefined;
+    const isNew = !prev;
+    const x =
+      isNew && fromLast != null
+        ? fromLast.x + (pt.x - fromLast.x) * e
+        : pt.x;
     const pointsByUser: Record<string, number> = {};
     for (const player of to.players) {
       const id = player.userId;
       const b = pt.pointsByUser[id] ?? 0;
       const a = prev
         ? (prev.pointsByUser[id] ?? 0)
-        : (fallbackX?.pointsByUser[id] ?? 0);
+        : (fromLast?.pointsByUser[id] ?? 0);
       pointsByUser[id] = a + (b - a) * e;
     }
-    return { ...pt, pointsByUser };
+    return { ...pt, x, pointsByUser };
   });
   return { ...to, points };
 }
