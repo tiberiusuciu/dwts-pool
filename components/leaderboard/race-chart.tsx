@@ -611,10 +611,6 @@ export function RaceChartSection({
     liveRace ? "race" : "all-time",
   );
 
-  useEffect(() => {
-    if (liveRace) setMode("race");
-  }, [liveRace]);
-
   const showToggle = Boolean(liveRace);
 
   return (
