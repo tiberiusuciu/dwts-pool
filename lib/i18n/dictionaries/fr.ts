@@ -313,6 +313,8 @@ export const fr = {
     allTimeTitle: "Points au fil de la saison",
     allTimeBody:
       "Tout le monde part à 0. Les épisodes 1–2 ne comptaient pas pour le pool — la montée commence à l'épisode 3.",
+    allTimeProjectedBody:
+      "Les traits pleins sont les totaux verrouillés. La pointe en pointillés est la projection de ce soir — elle peut encore bouger jusqu'à ce que l'épisode soit marqué comme passé.",
     episodeTitle: "Épisode {number} · {title}",
     projectedBody:
       "Points de ce soir à mesure que les couples sont notés. Les totaux peuvent encore bouger jusqu'à la dernière note et l'élimination.",

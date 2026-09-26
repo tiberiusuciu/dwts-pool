@@ -167,9 +167,11 @@ export function RaceChart({ data, live = false }: Props) {
             {title}
           </h2>
           <p className="mt-1 max-w-md text-xs text-muted sm:text-sm">
-            {display.projected
-              ? t("race.projectedBody")
-              : t("race.allTimeBody")}
+            {display.mode === "all-time" && display.projectedFromX != null
+              ? t("race.allTimeProjectedBody")
+              : display.projected
+                ? t("race.projectedBody")
+                : t("race.allTimeBody")}
           </p>
         </div>
       </header>
@@ -243,12 +245,13 @@ export function RaceChart({ data, live = false }: Props) {
           ))}
 
           {display.players.map((player) => {
-            const path = chart.paths[player.userId];
+            const paths = chart.paths[player.userId];
             const end = chart.ends[player.userId];
-            if (!path || !end) return null;
+            if (!paths || !end) return null;
             const color = colorForUser(player.userId);
             const dimmed = hoveredId != null && hoveredId !== player.userId;
             const focused = hoveredId === player.userId;
+            const strokeW = focused ? 3 : 2.25;
             return (
               <g
                 key={player.userId}
@@ -258,29 +261,60 @@ export function RaceChart({ data, live = false }: Props) {
                 onMouseEnter={() => setHoveredId(player.userId)}
                 onMouseLeave={() => setHoveredId(null)}
               >
-                <path
-                  d={path}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={focused ? 0.55 : 0.35}
-                  filter={`url(#${svgId}-glow)`}
-                  className="pointer-events-none"
-                />
-                <path
-                  d={path}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={focused ? 3 : 2.25}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="pointer-events-none"
-                />
+                {paths.solid ? (
+                  <>
+                    <path
+                      d={paths.solid}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={focused ? 0.55 : 0.35}
+                      filter={`url(#${svgId}-glow)`}
+                      className="pointer-events-none"
+                    />
+                    <path
+                      d={paths.solid}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={strokeW}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="pointer-events-none"
+                    />
+                  </>
+                ) : null}
+                {paths.dashed ? (
+                  <>
+                    <path
+                      d={paths.dashed}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray="5 6"
+                      opacity={focused ? 0.4 : 0.22}
+                      filter={`url(#${svgId}-glow)`}
+                      className="pointer-events-none"
+                    />
+                    <path
+                      d={paths.dashed}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={strokeW}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray="6 7"
+                      opacity={0.95}
+                      className="pointer-events-none"
+                    />
+                  </>
+                ) : null}
                 {/* Wide invisible hit target */}
                 <path
-                  d={path}
+                  d={paths.hit}
                   fill="none"
                   stroke="transparent"
                   strokeWidth={16}
@@ -418,16 +452,36 @@ function layoutChart(data: RaceChartData, lockedYMax?: number) {
   const xAt = (x: number) => pad.l + ((x - xMin) / xSpan) * plotW;
   const yAt = (y: number) => pad.t + plotH - (y / yMax) * plotH;
 
-  const paths: Record<string, string> = {};
+  const paths: Record<
+    string,
+    { solid: string | null; dashed: string | null; hit: string }
+  > = {};
   const ends: Record<string, { x: number; y: number }> = {};
+  const projectedFromX = data.projectedFromX ?? null;
+
   for (const player of data.players) {
     const coords = data.points.map((pt) => ({
       x: xAt(pt.x),
       y: yAt(pt.pointsByUser[player.userId] ?? 0),
+      dataX: pt.x,
     }));
-    paths[player.userId] = coords
-      .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
-      .join(" ");
+    const hit = coordsToPath(coords);
+    let solid: string | null = null;
+    let dashed: string | null = null;
+
+    if (projectedFromX == null) {
+      solid = hit;
+    } else {
+      const splitIdx = data.points.findIndex((p) => p.x >= projectedFromX);
+      if (splitIdx <= 0) {
+        dashed = hit;
+      } else {
+        solid = coordsToPath(coords.slice(0, splitIdx));
+        dashed = coordsToPath(coords.slice(splitIdx - 1));
+      }
+    }
+
+    paths[player.userId] = { solid, dashed, hit };
     const lastCoord = coords[coords.length - 1];
     if (lastCoord) ends[player.userId] = lastCoord;
   }
@@ -477,6 +531,13 @@ function layoutChart(data: RaceChartData, lockedYMax?: number) {
   };
 }
 
+function coordsToPath(coords: { x: number; y: number }[]) {
+  if (coords.length === 0) return "";
+  return coords
+    .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
+    .join(" ");
+}
+
 function bubbleWidth(name: string) {
   return Math.min(160, Math.max(56, name.length * 7.2 + 20));
 }
@@ -495,6 +556,7 @@ function seriesKey(data: RaceChartData) {
   return JSON.stringify({
     mode: data.mode,
     episodeId: data.episodeId ?? null,
+    projectedFromX: data.projectedFromX ?? null,
     players: data.players.map((p) => p.userId),
     points: data.points.map((p) => [p.x, p.pointsByUser]),
   });

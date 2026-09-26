@@ -305,6 +305,8 @@ export const en = {
     allTimeTitle: "Points over the season",
     allTimeBody:
       "Everyone starts at 0. Episodes 1–2 didn’t count toward the pool — the climb begins at episode 3.",
+    allTimeProjectedBody:
+      "Solid lines are locked-in season totals. The dotted tip is tonight’s projected climb — it can still move until the episode is marked past.",
     episodeTitle: "Episode {number} · {title}",
     projectedBody:
       "Tonight’s points as couples get scored. Totals can still move until every score and the elimination are in.",

@@ -33,6 +33,11 @@ export type RaceChartData = {
   episodeNumber?: number;
   title?: string;
   projected: boolean;
+  /**
+   * For all-time charts while an episode is LIVE: x ≥ this value is projected
+   * (draw that segment dotted). Null/undefined = fully confirmed.
+   */
+  projectedFromX?: number | null;
   players: RacePlayer[];
   points: RaceSeriesPoint[];
 };
@@ -187,6 +192,7 @@ export async function getEpisodeRaceSeries(
 
 /**
  * Cumulative season chart: start at 0; Ep 1–2 contribute 0; Ep 3+ add real finals.
+ * LIVE episodes are included as a projected tip (dotted on the chart).
  */
 export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
   const [users, episodes, couples, activeWinnerCoupleId] = await Promise.all([
@@ -197,8 +203,13 @@ export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
     }),
     prisma.episode.findMany({
       where: {
-        status: { in: [EpisodeStatus.PAST, EpisodeStatus.LIVE] },
-        actualResults: { some: {} },
+        OR: [
+          {
+            status: EpisodeStatus.PAST,
+            actualResults: { some: {} },
+          },
+          { status: EpisodeStatus.LIVE },
+        ],
       },
       include: { actualResults: true },
       orderBy: { episodeNumber: "asc" },
@@ -233,10 +244,11 @@ export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
   ];
 
   const cumulative = { ...zero };
-  let anyLive = false;
+  let projectedFromX: number | null = null;
 
   for (const episode of episodes) {
-    if (episode.status === EpisodeStatus.LIVE) anyLive = true;
+    const isLive = episode.status === EpisodeStatus.LIVE;
+    if (isLive) projectedFromX = episode.episodeNumber;
 
     for (const user of users) {
       let epPts = 0;
@@ -262,14 +274,17 @@ export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
 
     points.push({
       x: episode.episodeNumber,
-      label: `E${episode.episodeNumber}`,
+      label: isLive
+        ? `E${episode.episodeNumber}*`
+        : `E${episode.episodeNumber}`,
       pointsByUser: { ...cumulative },
     });
   }
 
   return {
     mode: "all-time",
-    projected: anyLive,
+    projected: projectedFromX != null,
+    projectedFromX,
     players,
     points,
   };
