@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
+import { LivePulse } from "@/components/live/live-pulse";
 import { useT } from "@/components/i18n/locale-provider";
 import type { EpisodeDTO } from "@/lib/episodes";
 
@@ -16,16 +17,6 @@ function pickDefaultEpisodeId(episodes: EpisodeDTO[]): string {
 
   const upcoming = episodes.find((e) => e.status === "UPCOMING");
   return upcoming?.id ?? episodes[0]?.id ?? "";
-}
-
-function LivePulse() {
-  return (
-    <span className="live-pulse" aria-hidden>
-      <span className="live-pulse-ring" />
-      <span className="live-pulse-ring live-pulse-ring-delay" />
-      <span className="live-pulse-dot" />
-    </span>
-  );
 }
 
 export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {

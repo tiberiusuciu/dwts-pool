@@ -309,7 +309,7 @@ export const fr = {
   },
   race: {
     seasonEyebrow: "Course de la saison",
-    projectedEyebrow: "Projeté · en direct",
+    projectedEyebrow: "Projeté",
     allTimeTitle: "Points au fil de la saison",
     allTimeBody:
       "Tout le monde part à 0. Les épisodes 1–2 ne comptaient pas pour le pool — la montée commence à l'épisode 3.",

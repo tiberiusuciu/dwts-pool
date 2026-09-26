@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useT } from "@/components/i18n/locale-provider";
+import { LivePulse } from "@/components/live/live-pulse";
 import type { RaceChartData } from "@/lib/race-snapshots";
 
 const PALETTE = [
@@ -161,7 +162,16 @@ export function RaceChart({ data, live = false }: Props) {
       <header className="relative z-10 mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-accent">
-            {display.projected ? t("race.projectedEyebrow") : t("race.seasonEyebrow")}
+            {display.projected ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span>{t("race.projectedEyebrow")}</span>
+                <span aria-hidden>·</span>
+                <LivePulse />
+                <span>{t("timeline.statusLive")}</span>
+              </span>
+            ) : (
+              t("race.seasonEyebrow")
+            )}
           </p>
           <h2 className="mt-0.5 font-display text-lg font-semibold tracking-tight">
             {title}

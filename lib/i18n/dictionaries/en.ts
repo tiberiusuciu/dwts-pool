@@ -301,7 +301,7 @@ export const en = {
   },
   race: {
     seasonEyebrow: "Season race",
-    projectedEyebrow: "Projected · live",
+    projectedEyebrow: "Projected",
     allTimeTitle: "Points over the season",
     allTimeBody:
       "Everyone starts at 0. Episodes 1–2 didn’t count toward the pool — the climb begins at episode 3.",
