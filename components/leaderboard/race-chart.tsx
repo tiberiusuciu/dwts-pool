@@ -491,10 +491,6 @@ function seriesYMax(data: RaceChartData) {
   return yMax;
 }
 
-function seriesEqual(a: RaceChartData, b: RaceChartData) {
-  return seriesKey(a) === seriesKey(b);
-}
-
 function seriesKey(data: RaceChartData) {
   return JSON.stringify({
     mode: data.mode,
