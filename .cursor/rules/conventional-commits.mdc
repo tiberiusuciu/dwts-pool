@@ -1,0 +1,48 @@
+---
+description: Auto-commit atomic work with conventional commit messages
+alwaysApply: true
+---
+
+# Conventional commits (auto)
+
+When this repo has a coherent, reviewable unit of work ready — and enough change to justify an atomic commit — **create the git commit without waiting to be asked**.
+
+## When to commit
+
+- A feature, fix, refactor, test, or chore is functionally complete
+- The diff is one logical change (or split into multiple atomic commits)
+- Do **not** leave large finished scoring/auth/UI batches uncommitted across turns
+
+## When not to commit
+
+- Work is mid-flight / broken / untested
+- Only exploratory local scripts, scratch files, or secrets
+- User explicitly said not to commit
+
+## Message format (Conventional Commits)
+
+```
+type(scope): short imperative summary
+```
+
+- **Types:** `feat`, `fix`, `refactor`, `test`, `chore`, `docs`, `style`, `perf`
+- **Scope:** area of the app (`scoring`, `auth`, `predict`, `admin`, `i18n`, …)
+- Summary: why/what in ~72 chars; match existing `git log` tone
+- Body optional for non-obvious rationale
+
+Examples from this repo: `feat(login): Update backsplash`, `fix(app): Update copy`
+
+## Safety (still apply)
+
+- Never update git config
+- Never commit `.env`, credentials, or production secrets
+- Never force-push to main, amend unless the usual amend conditions hold
+- Prefer **not** committing one-off `scripts/local-*` debug helpers unless the user asks
+- Follow the existing prediction-data rule: never wipe prediction history in commits that add "cleanup" migrations
+
+## Procedure
+
+1. `git status` / `git diff` / recent `git log` for style
+2. Stage only files for that atomic unit
+3. Commit with HEREDOC message
+4. `git status` to verify
