@@ -857,14 +857,15 @@ body {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 5;
   overflow: hidden;
   border-radius: inherit;
+  --fall: 72px;
 }
 
 .crowning-confetti span {
   position: absolute;
-  top: -8%;
+  top: 0;
   width: 5px;
   height: 8px;
   border-radius: 1px;
@@ -872,6 +873,7 @@ body {
   opacity: 0.9;
   animation: crowning-confetti-fall 5s linear forwards;
   box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 70%, transparent);
+  will-change: transform, opacity;
 }
 
 .crowning-confetti span:nth-child(odd) {
@@ -900,15 +902,15 @@ body {
 
 @keyframes crowning-confetti-fall {
   0% {
-    transform: translate3d(0, -10%, 0) rotate(0deg);
+    transform: translate3d(0, -6px, 0) rotate(0deg);
     opacity: 0;
   }
-  8% {
+  10% {
     opacity: 1;
   }
   100% {
-    transform: translate3d(var(--dx, 12px), 120%, 0) rotate(420deg);
-    opacity: 0.15;
+    transform: translate3d(var(--dx, 12px), var(--fall), 0) rotate(420deg);
+    opacity: 0.2;
   }
 }
 
@@ -917,8 +919,8 @@ body {
   position: relative;
   isolation: isolate;
   overflow: visible;
-  padding: 0.2rem 0.45rem;
-  margin: -0.2rem -0.45rem;
+  padding: 0.35rem 0.55rem;
+  margin: -0.35rem -0.55rem;
   border-radius: 9999px;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--gold) 50%, transparent),
@@ -943,12 +945,15 @@ body {
 }
 
 .race-legend-crowning .crowning-confetti {
-  inset: -40px -12px -28px -12px;
+  /* Cover the pill and a little above so pieces fall through the chip */
+  inset: -10px -6px -14px -6px;
   overflow: visible;
+  --fall: 48px;
+  border-radius: 9999px;
 }
 
-.race-legend-crowning .crowning-confetti span {
-  animation-duration: 5s;
+.leaderboard-crowning .crowning-confetti {
+  --fall: 64px;
 }
 
 @media (prefers-reduced-motion: reduce) {

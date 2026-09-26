@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-/** Gold confetti burst — parent should be `position: relative` with overflow clipped. */
+/** Gold confetti burst — parent should be `position: relative`. */
 export function CrowningConfetti({ count = 22 }: { count?: number }) {
   return (
     <div className="crowning-confetti" aria-hidden>
@@ -9,9 +9,10 @@ export function CrowningConfetti({ count = 22 }: { count?: number }) {
           key={i}
           style={
             {
-              left: `${4 + ((i * 17) % 92)}%`,
-              animationDelay: `${(i % 10) * 0.12}s`,
-              "--dx": `${(i % 2 === 0 ? 1 : -1) * (8 + (i % 7) * 4)}px`,
+              left: `${3 + ((i * 19) % 94)}%`,
+              top: `${-4 + (i % 5) * 3}px`,
+              animationDelay: `${(i % 12) * 0.08}s`,
+              "--dx": `${(i % 2 === 0 ? 1 : -1) * (6 + (i % 8) * 3)}px`,
             } as CSSProperties
           }
         />
