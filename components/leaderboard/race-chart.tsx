@@ -374,7 +374,6 @@ export function RaceChart({ data, live = false }: Props) {
               transform={`translate(${chart.leader.cx}, ${chart.leader.cy})`}
               className="race-crown pointer-events-none"
             >
-              <circle r={11} fill="#ffc1d1" opacity={0.35} />
               <foreignObject x={-9} y={-20} width={18} height={18}>
                 <Crown
                   className="size-[18px] text-[#f5c518]"
