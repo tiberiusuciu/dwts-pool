@@ -2,6 +2,7 @@
 
 import { CircleHelp, Radio, Trophy, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useT } from "@/components/i18n/locale-provider";
 
@@ -22,6 +23,11 @@ export function HowToPlayModal({
   const t = useT();
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -39,10 +45,10 @@ export function HowToPlayModal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6">
       <button
         type="button"
         aria-label={t("common.dismiss")}
@@ -53,7 +59,7 @@ export function HowToPlayModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="how-to-panel relative flex max-h-[min(92dvh,40rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
+        className="how-to-panel relative flex max-h-[min(88dvh,40rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
       >
         <div
           className="how-to-panel-glow pointer-events-none absolute inset-x-0 top-0 h-32"
@@ -202,7 +208,8 @@ export function HowToPlayModal({
           </button>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
