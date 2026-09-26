@@ -269,4 +269,38 @@ export const fr = {
     saving: "Enregistrement…",
     pts: "pts",
   },
+  howToPlay: {
+    openAria: "Comment fonctionne le pool",
+    eyebrow: "Saison 35",
+    title: "Comment jouer",
+    lede: "Pronostiquez le classement, visez l'élimination, et suivez le tableau en direct le soir de l'émission.",
+    predictTitle: "Avant le verrouillage",
+    predictBody:
+      "Chaque semaine, classez les couples du score de juges le plus élevé au plus bas et choisissez qui va rentrer à la maison. Sauvegarde auto. Verrouillage mardi 20 h HE — ensuite votre grille est figée pour l'épisode.",
+    scoringTitle: "Comment les points marchent",
+    scoringBody:
+      "Pour chaque couple, on compare votre rang prédit à sa place réelle au tableau des juges. Plus c'est proche, plus ça rapporte (semaines actuelles) :",
+    bandDist: "Écart {dist}",
+    tieTitle: "Les égalités partagent une plage",
+    tieBody:
+      "Si plusieurs couples ont le même total de juges, ils se partagent les places — p. ex. trois couples à 21 ont les rangs 1–3. Toute prédiction dans cette plage compte comme un coup parfait (3 pts). La distance se mesure jusqu'au bord le plus proche de la plage.",
+    tieScorePill: "À égalité à 21",
+    tieRangePill: "Rangs 1–3",
+    tieHitPill: "Préd. 1, 2 ou 3 → 3 pts",
+    elimBody:
+      "Bonne élimination : +25 points (épisodes 1–2 : +50). Mauvaise élim : 0.",
+    seasonBody:
+      "Le gagnant de la saison n'est compté qu'à la finale : 50 de base + 10 pour chaque semaine où vous aviez le bon couple verrouillé.",
+    liveTitle: "Soir d'émission — ouvrez l'app",
+    liveBody:
+      "Quand l'épisode est en direct, les pronostics sont verrouillés. À mesure que les juges annoncent les notes, les hôtes les saisissent ici et le pool se met à jour en temps réel — votre rang et vos points dans l'en-tête évoluent au fil de la soirée.",
+    liveHintTitle: "Restez branchés quand les notes tombent",
+    liveHintBody:
+      "Gardez l'app ouverte (ou rafraîchissez) à chaque total annoncé. La position bouge en direct — n'attendez pas le générique.",
+    boardTitle: "Classement = projection anticipée",
+    boardBody:
+      "Ouvrez Classement pendant l'émission pour un aperçu en cours de vos points projetés, avant que l'élim soit finalisée. Dépliez votre ligne pour voir les coups justes, les presque, et les plages de rangs en cas d'égalité.",
+    boardCallout: "Consultez le classement en cours d'émission pour votre projection.",
+    close: "Compris",
+  },
 } as const satisfies Dictionary;

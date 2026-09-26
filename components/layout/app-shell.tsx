@@ -12,6 +12,7 @@ import {
   type LockClockProps,
 } from "@/components/layout/lock-countdown-chip";
 import { PrizePoolChip } from "@/components/layout/prize-pool-chip";
+import { HowToPlayButton } from "@/components/layout/how-to-play-modal";
 
 const NAV = [
   { href: "/", labelKey: "nav.home", icon: Home },
@@ -198,6 +199,7 @@ export function AppShell({
 
             <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
+            <HowToPlayButton />
             <StandingChip standing={standing} />
           </div>
         </div>

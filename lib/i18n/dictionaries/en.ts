@@ -261,6 +261,40 @@ export const en = {
     saving: "Saving…",
     pts: "pts",
   },
+  howToPlay: {
+    openAria: "How the pool works",
+    eyebrow: "Season 35",
+    title: "How to play",
+    lede: "Predict ranks, nail the elim, and ride the live scoreboard on show night.",
+    predictTitle: "Before lock",
+    predictBody:
+      "Each week, drag couples from highest to lowest expected judge score and pick who will go home. Saves auto. Locks Tuesday 8pm ET — after that your board is frozen for the episode.",
+    scoringTitle: "How points work",
+    scoringBody:
+      "For each couple, we compare your predicted rank to their actual place on the judge scoreboard. Closer = more points (current weeks):",
+    bandDist: "Off by {dist}",
+    tieTitle: "Ties share a rank range",
+    tieBody:
+      "If several couples post the same judge total, they share places — e.g. three couples at 21 get ranks 1–3. Any of your predictions in that range scores a full hit (3 pts). Distance is measured to the nearest edge of the range.",
+    tieScorePill: "Tied at 21",
+    tieRangePill: "Ranks 1–3",
+    tieHitPill: "Pred 1, 2, or 3 → 3 pts",
+    elimBody:
+      "Correct elimination pick: +25 points (episodes 1–2 used +50). Wrong elim: 0.",
+    seasonBody:
+      "Season winner is scored only on the finale: 50 base + 10 for each week you held the correct couple locked in.",
+    liveTitle: "Show night — go live with the app",
+    liveBody:
+      "When the episode is live, predictions are locked. As judges announce scores, hosts enter them here and the pool updates in real time — your header rank and points refresh as the night goes on.",
+    liveHintTitle: "Tune in when scores drop",
+    liveHintBody:
+      "Keep the app open (or refresh) as each couple’s total lands. Position shifts live — don’t wait until the credits roll.",
+    boardTitle: "Leaderboard = early projection",
+    boardBody:
+      "Open Ranks during the show for a running glimpse of how many points you’re projecting before elim is finalized. Expand your row to see per-couple hits, near-misses, and the actual rank ranges when ties happen.",
+    boardCallout: "Check the leaderboard mid-show for your projected haul.",
+    close: "Got it",
+  },
 } as const;
 
 type DeepString<T> = {
