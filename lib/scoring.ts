@@ -2,18 +2,14 @@ import {
   CoupleStatus,
   EpisodeStatus,
   PredictionKind,
-  type ActualResult,
-  type Episode,
-  type Prediction,
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {
-  resolveScoringRuleset,
-  scoreRankDistanceLegacy,
-  scoreRankPoints,
-} from "@/lib/scoring-rules";
-import { scoreSeasonWinnerPoints } from "@/lib/season-scoring";
+  scoreEpisodeFromData,
+  type EpisodeScoreBreakdown,
+} from "@/lib/score-episode";
+import { scoreRankDistanceLegacy } from "@/lib/scoring-rules";
 
 export {
   scoreSeasonWinnerPoints,
@@ -23,10 +19,17 @@ export {
 } from "@/lib/season-scoring";
 
 export {
+  buildActualRankRanges,
+  distanceToRankRange,
   resolveScoringRuleset,
   scoreRankPoints,
   SCORING_RULESETS,
 } from "@/lib/scoring-rules";
+
+export {
+  scoreEpisodeFromData,
+  type EpisodeScoreBreakdown,
+} from "@/lib/score-episode";
 
 /** Legacy helper kept for callers that still need n-minus-distance math. */
 export function scoreRankDistance(
@@ -40,145 +43,6 @@ export function scoreRankDistance(
 /** Episodes still "upcoming" are treated as not aired — do not award points. */
 const SCORABLE_EPISODE_STATUSES = [EpisodeStatus.PAST, EpisodeStatus.LIVE] as const;
 
-export type EpisodeScoreBreakdown = {
-  episodeId: string;
-  episodeNumber: number;
-  title: string;
-  elimPts: number;
-  rankPts: number;
-  seasonPts: number;
-  total: number;
-  eliminatedCoupleId: string | null;
-  predictedElimName: string | null;
-  actualEliminatedIds: string[];
-  actualElimNames: string[];
-  ranks: {
-    coupleId: string;
-    celebrityName: string;
-    predictedRank: number | null;
-    actualRank: number | null;
-    points: number;
-  }[];
-};
-
-function buildActualRanks(
-  results: Pick<ActualResult, "coupleId" | "judgeScore">[],
-  couples: { id: string; celebrityName: string }[],
-): Map<string, number> {
-  const name = new Map(couples.map((c) => [c.id, c.celebrityName]));
-  const scored = results
-    .filter((r) => r.judgeScore != null)
-    .sort((a, b) => {
-      const scoreDiff = (b.judgeScore ?? 0) - (a.judgeScore ?? 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      return (name.get(a.coupleId) ?? "").localeCompare(
-        name.get(b.coupleId) ?? "",
-      );
-    });
-  const ranks = new Map<string, number>();
-  scored.forEach((r, i) => ranks.set(r.coupleId, i + 1));
-  return ranks;
-}
-
-export function scoreEpisodeFromData(input: {
-  episode: Pick<Episode, "id" | "episodeNumber" | "title" | "isFinale">;
-  results: Pick<ActualResult, "coupleId" | "judgeScore" | "isEliminated">[];
-  predictions: Pick<
-    Prediction,
-    | "kind"
-    | "seasonWinnerCoupleId"
-    | "seasonWinnerFromEpisodeNumber"
-    | "predictedEliminatedCoupleId"
-    | "coupleId"
-    | "predictedRank"
-  >[];
-  couples: { id: string; celebrityName: string }[];
-  activeWinnerCoupleId: string | null;
-}): EpisodeScoreBreakdown {
-  const { episode, results, predictions, couples, activeWinnerCoupleId } =
-    input;
-  const coupleName = new Map(couples.map((c) => [c.id, c.celebrityName]));
-  const ruleset = resolveScoringRuleset(episode.episodeNumber);
-
-  const elimPred = predictions.find(
-    (p) => p.kind === PredictionKind.WEEKLY_ELIMINATION,
-  );
-  const eliminatedCoupleId = elimPred?.predictedEliminatedCoupleId ?? null;
-  const actualEliminatedIds = results
-    .filter((r) => r.isEliminated)
-    .map((r) => r.coupleId);
-
-  const elimPts =
-    eliminatedCoupleId && actualEliminatedIds.includes(eliminatedCoupleId)
-      ? ruleset.elimPoints
-      : 0;
-
-  const actualRanks = buildActualRanks(results, couples);
-  const n = actualRanks.size;
-
-  const predictedRanks = new Map(
-    predictions
-      .filter(
-        (p) =>
-          p.kind === PredictionKind.WEEKLY_RANK &&
-          p.coupleId &&
-          p.predictedRank != null,
-      )
-      .map((p) => [p.coupleId!, p.predictedRank!] as const),
-  );
-
-  let rankPts = 0;
-  const ranks = [...actualRanks.entries()]
-    .map(([coupleId, actualRank]) => {
-      const predictedRank = predictedRanks.get(coupleId) ?? null;
-      const points =
-        predictedRank != null && n > 0
-          ? scoreRankPoints(predictedRank, actualRank, n, ruleset)
-          : 0;
-      rankPts += points;
-      return {
-        coupleId,
-        celebrityName: coupleName.get(coupleId) ?? "Couple",
-        predictedRank,
-        actualRank,
-        points,
-      };
-    })
-    .sort((a, b) => (a.actualRank ?? 99) - (b.actualRank ?? 99));
-
-  let seasonPts = 0;
-  if (episode.isFinale && activeWinnerCoupleId) {
-    const seasonPred = predictions.find(
-      (p) => p.kind === PredictionKind.SEASON_WINNER,
-    );
-    if (seasonPred?.seasonWinnerCoupleId === activeWinnerCoupleId) {
-      seasonPts = scoreSeasonWinnerPoints(
-        seasonPred.seasonWinnerFromEpisodeNumber,
-        episode.episodeNumber,
-      );
-    }
-  }
-
-  return {
-    episodeId: episode.id,
-    episodeNumber: episode.episodeNumber,
-    title: episode.title,
-    elimPts,
-    rankPts,
-    seasonPts,
-    total: elimPts + rankPts + seasonPts,
-    eliminatedCoupleId,
-    predictedElimName: eliminatedCoupleId
-      ? (coupleName.get(eliminatedCoupleId) ?? "Unknown")
-      : null,
-    actualEliminatedIds,
-    actualElimNames: actualEliminatedIds.map(
-      (id) => coupleName.get(id) ?? "Unknown",
-    ),
-    ranks,
-  };
-}
-
 export async function getSeasonWinnerCoupleId(): Promise<string | null> {
   const active = await prisma.couple.findMany({
     where: { status: CoupleStatus.ACTIVE },
@@ -187,6 +51,10 @@ export async function getSeasonWinnerCoupleId(): Promise<string | null> {
   return active.length === 1 ? active[0].id : null;
 }
 
+/**
+ * Recompute every named user's `totalPoints` from existing predictions +
+ * actual results. Read-only on Prediction / PredictionEvent — scoreboard only.
+ */
 export async function recalculateAllPoints(): Promise<
   { userId: string; totalPoints: number }[]
 > {

@@ -143,7 +143,12 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
                       {row.predictedRank ?? "—"}
                     </td>
                     <td className="py-1 pr-2 text-right tabular-nums text-muted">
-                      {row.actualRank ?? "—"}
+                      {row.actualRank == null
+                        ? "—"
+                        : row.actualRankMax != null &&
+                            row.actualRankMax !== row.actualRank
+                          ? `${row.actualRank}–${row.actualRankMax}`
+                          : row.actualRank}
                     </td>
                     <td className="py-1 text-right tabular-nums">
                       {pts(row.points)}
