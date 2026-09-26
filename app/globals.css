@@ -871,7 +871,7 @@ body {
   border-radius: 1px;
   background: var(--gold);
   opacity: 0.9;
-  animation: crowning-confetti-fall 5s linear forwards;
+  animation: crowning-confetti-fall 2.8s cubic-bezier(0.33, 0.05, 0.7, 0.2) forwards;
   box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 70%, transparent);
   will-change: transform, opacity;
 }
@@ -903,16 +903,13 @@ body {
 @keyframes crowning-confetti-fall {
   0% {
     transform: translate3d(0, 0, 0) rotate(0deg);
-    opacity: 0;
-  }
-  8% {
     opacity: 1;
   }
-  55% {
-    opacity: 0.85;
+  85% {
+    opacity: 0.75;
   }
   100% {
-    transform: translate3d(var(--dx, 18px), var(--fall), 0) rotate(360deg);
+    transform: translate3d(var(--dx, 18px), var(--fall), 0) rotate(320deg);
     opacity: 0;
   }
 }
