@@ -11,6 +11,7 @@ import {
 } from "@/lib/live-bus";
 import { clampScore, SCORE_MIN } from "@/lib/scores";
 import { prisma } from "@/lib/prisma";
+import { captureEpisodeRaceSnapshot } from "@/lib/race-snapshots";
 import { recalculateAllPoints } from "@/lib/scoring";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -48,6 +49,12 @@ export async function setEpisodeStatus(
 
   // Totals must drop rank/elim/season points when an episode is reset to UPCOMING
   await recalculateAllPoints();
+  if (status === EpisodeStatus.LIVE) {
+    await captureEpisodeRaceSnapshot(episodeId);
+  }
+  if (status === EpisodeStatus.UPCOMING) {
+    await prisma.episodeRaceSnapshot.deleteMany({ where: { episodeId } });
+  }
   publishLeaderboardUpdate();
   revalidatePath("/leaderboard");
 
@@ -147,6 +154,19 @@ export async function upsertLiveResult(input: {
   });
 
   await broadcastEpisode(input.episodeId);
+
+  const episode = await prisma.episode.findUnique({
+    where: { id: input.episodeId },
+    select: { status: true },
+  });
+  if (episode?.status === EpisodeStatus.LIVE) {
+    await captureEpisodeRaceSnapshot(input.episodeId);
+  }
+  await recalculateAllPoints();
+  publishLeaderboardUpdate();
+  revalidatePath("/leaderboard");
+  revalidatePath("/");
+
   return { ok: true };
 }
 
@@ -167,6 +187,7 @@ export async function clearEpisodeResults(
 
   await prisma.$transaction(async (tx) => {
     await tx.actualResult.deleteMany({ where: { episodeId } });
+    await tx.episodeRaceSnapshot.deleteMany({ where: { episodeId } });
     await tx.couple.updateMany({
       where: { eliminatedEpisodeId: episodeId },
       data: {
@@ -179,6 +200,7 @@ export async function clearEpisodeResults(
   await recalculateAllPoints();
   publishLeaderboardUpdate();
   revalidatePath("/leaderboard");
+  revalidatePath("/");
   await broadcastEpisode(episodeId);
   return { ok: true };
 }
@@ -191,15 +213,15 @@ export async function calculateAndBroadcastPoints(): Promise<
   }
 
   const updates = await recalculateAllPoints();
-  publishLeaderboardUpdate();
-
   const live = await prisma.episode.findFirst({
     where: { status: EpisodeStatus.LIVE },
     select: { id: true },
   });
   if (live) {
+    await captureEpisodeRaceSnapshot(live.id);
     await broadcastEpisode(live.id);
   }
+  publishLeaderboardUpdate();
 
   revalidatePath("/leaderboard");
   revalidatePath("/");

@@ -34,8 +34,10 @@ function navIndex(pathname: string) {
 
 function StandingChip({
   standing,
+  projected = false,
 }: {
   standing: { rank: number; totalPoints: number } | null;
+  projected?: boolean;
 }) {
   const t = useT();
   const prevPointsRef = useRef<number | null>(null);
@@ -69,12 +71,25 @@ function StandingChip({
           : cheer === "small"
             ? "standing-cheer-small"
             : ""
-      }`}
-      aria-label={t("nav.standingAria", {
-        rank: standing.rank,
-        points: standing.totalPoints,
-      })}
+      } ${projected ? "border-accent/40" : ""}`}
+      aria-label={
+        projected
+          ? t("nav.standingProjectedAria", {
+              rank: standing.rank,
+              points: standing.totalPoints,
+            })
+          : t("nav.standingAria", {
+              rank: standing.rank,
+              points: standing.totalPoints,
+            })
+      }
+      title={projected ? t("nav.standingProjectedTitle") : undefined}
     >
+      {projected ? (
+        <span className="hidden text-[9px] font-semibold uppercase tracking-wide text-accent sm:inline">
+          {t("nav.projected")}
+        </span>
+      ) : null}
       <span className="text-accent">#{standing.rank}</span>
       <span
         className={`text-muted ${cheer ? "inline" : "hidden sm:inline md:hidden xl:inline"}`}
@@ -95,12 +110,14 @@ export function AppShell({
   lockClock,
   prizePoolCents,
   liveParty = false,
+  projectedStanding = false,
 }: {
   children: React.ReactNode;
   standing: { rank: number; totalPoints: number } | null;
   lockClock: LockClockProps | null;
   prizePoolCents: number;
   liveParty?: boolean;
+  projectedStanding?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -200,7 +217,7 @@ export function AppShell({
             <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
             <HowToPlayButton />
-            <StandingChip standing={standing} />
+            <StandingChip standing={standing} projected={projectedStanding} />
           </div>
         </div>
       </header>

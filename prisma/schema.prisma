@@ -128,6 +128,7 @@ model Episode {
   actualResults     ActualResult[]
   predictions       Prediction[]
   predictionEvents  PredictionEvent[]
+  raceSnapshots     EpisodeRaceSnapshot[]
 }
 
 model ActualResult {
@@ -141,6 +142,21 @@ model ActualResult {
   couple  Couple  @relation(fields: [coupleId], references: [id], onDelete: Cascade)
 
   @@unique([episodeId, coupleId])
+}
+
+/** Mid-night race curve: episode points per user after N couples scored. */
+model EpisodeRaceSnapshot {
+  id            String   @id @default(cuid())
+  episodeId     String
+  scoredCount   Int
+  /** { [userId]: episodePoints } */
+  pointsByUser  Json
+  capturedAt    DateTime @default(now())
+
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, scoredCount])
+  @@index([episodeId])
 }
 
 model Prediction {

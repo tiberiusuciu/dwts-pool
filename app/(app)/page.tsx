@@ -3,6 +3,7 @@ import { EpisodeStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { EpisodeTimeline } from "@/components/episodes/episode-timeline";
 import { HomeGreeting } from "@/components/home/home-greeting";
+import { RaceChart } from "@/components/leaderboard/race-chart";
 import { RankPredictionBoard } from "@/components/predictions/rank-prediction-board";
 import { getEpisodesWithResults } from "@/lib/episodes";
 import {
@@ -12,15 +13,17 @@ import {
   getFeaturedPredictionEpisode,
   getUserPredictions,
 } from "@/lib/predictions";
+import { getLiveEpisodeRaceIfAny } from "@/lib/race-snapshots";
 
 export default async function HomePage() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [episodes, featured, couples] = await Promise.all([
+  const [episodes, featured, couples, liveRace] = await Promise.all([
     getEpisodesWithResults(),
     getFeaturedPredictionEpisode(),
     getActiveCouples(),
+    getLiveEpisodeRaceIfAny(),
   ]);
 
   const isLive = featured?.status === EpisodeStatus.LIVE;
@@ -41,11 +44,13 @@ export default async function HomePage() {
       : defaultRankOrder(couples);
 
   return (
-    <div>
+    <div className="space-y-8">
       <HomeGreeting
         displayName={session?.user?.displayName}
         isLive={Boolean(isLive)}
       />
+
+      {liveRace ? <RaceChart data={liveRace} live /> : null}
 
       {featured && userId ? (
         <RankPredictionBoard

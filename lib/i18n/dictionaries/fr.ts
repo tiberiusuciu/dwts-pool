@@ -8,6 +8,10 @@ export const fr = {
     ranks: "Classement",
     settings: "Réglages",
     standingAria: "Rang {rank}, {points} points. Ouvrir le classement.",
+    standingProjectedAria:
+      "Rang projeté {rank}, {points} points — encore en cours. Ouvrir le classement.",
+    standingProjectedTitle: "Projeté — se met à jour avec les notes",
+    projected: "Proj.",
     pts: "pts",
   },
   lock: {
@@ -302,5 +306,17 @@ export const fr = {
       "Ouvrez Classement pendant l'émission pour un aperçu en cours de vos points projetés, avant que l'élim soit finalisée. Dépliez votre ligne pour voir les coups justes, les presque, et les plages de rangs en cas d'égalité.",
     boardCallout: "Consultez le classement en cours d'émission pour votre projection.",
     close: "Compris",
+  },
+  race: {
+    seasonEyebrow: "Course de la saison",
+    projectedEyebrow: "Projeté · en direct",
+    allTimeTitle: "Points au fil de la saison",
+    allTimeBody:
+      "Tout le monde part à 0. Les épisodes 1–2 ne comptaient pas pour le pool — la montée commence à l'épisode 3.",
+    episodeTitle: "Épisode {number} · {title}",
+    projectedBody:
+      "Points de ce soir à mesure que les couples sont notés. Les totaux peuvent encore bouger jusqu'à la dernière note et l'élimination.",
+    tabTonight: "Ce soir",
+    tabAllTime: "Saison",
   },
 } as const satisfies Dictionary;

@@ -6,6 +6,10 @@ export const en = {
     ranks: "Ranks",
     settings: "Settings",
     standingAria: "Rank {rank}, {points} points. Open leaderboard.",
+    standingProjectedAria:
+      "Projected rank {rank}, {points} points — still updating. Open leaderboard.",
+    standingProjectedTitle: "Projected — updates as scores land",
+    projected: "Proj.",
     pts: "pts",
   },
   lock: {
@@ -294,6 +298,18 @@ export const en = {
       "Open Ranks during the show for a running glimpse of how many points you’re projecting before elim is finalized. Expand your row to see per-couple hits, near-misses, and the actual rank ranges when ties happen.",
     boardCallout: "Check the leaderboard mid-show for your projected haul.",
     close: "Got it",
+  },
+  race: {
+    seasonEyebrow: "Season race",
+    projectedEyebrow: "Projected · live",
+    allTimeTitle: "Points over the season",
+    allTimeBody:
+      "Everyone starts at 0. Episodes 1–2 didn’t count toward the pool — the climb begins at episode 3.",
+    episodeTitle: "Episode {number} · {title}",
+    projectedBody:
+      "Tonight’s points as couples get scored. Totals can still move until every score and the elimination are in.",
+    tabTonight: "Tonight",
+    tabAllTime: "All-time",
   },
 } as const;
 
