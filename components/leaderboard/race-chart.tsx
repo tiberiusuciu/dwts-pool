@@ -161,7 +161,7 @@ export function RaceChart({ data, live = false }: Props) {
       <div className="relative z-10">
         <svg
           viewBox={`0 0 ${chart.width} ${chart.height}`}
-          className="h-auto w-full"
+          className="h-auto w-full outline-none [&_*]:outline-none"
           role="img"
           aria-label={title}
         >
@@ -241,8 +241,6 @@ export function RaceChart({ data, live = false }: Props) {
                 style={{ transition: "opacity 160ms ease" }}
                 onMouseEnter={() => setHoveredId(player.userId)}
                 onMouseLeave={() => setHoveredId(null)}
-                onFocus={() => setHoveredId(player.userId)}
-                onBlur={() => setHoveredId(null)}
               >
                 <path
                   d={path}
@@ -272,10 +270,9 @@ export function RaceChart({ data, live = false }: Props) {
                   strokeWidth={16}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="cursor-pointer"
-                  tabIndex={0}
-                  role="img"
-                  aria-label={player.displayName}
+                  className="cursor-pointer outline-none focus:outline-none"
+                  tabIndex={-1}
+                  aria-hidden
                 />
                 {focused ? (
                   <g
