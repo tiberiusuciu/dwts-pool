@@ -35,6 +35,7 @@ export function RaceChart({ data, live = false }: Props) {
   const router = useRouter();
   const svgId = useId().replace(/:/g, "");
   const [flash, setFlash] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [display, setDisplay] = useState(data);
   const prevRef = useRef(data);
   const reduced =
@@ -227,10 +228,22 @@ export function RaceChart({ data, live = false }: Props) {
 
           {display.players.map((player) => {
             const path = chart.paths[player.userId];
-            if (!path) return null;
+            const end = chart.ends[player.userId];
+            if (!path || !end) return null;
             const color = colorForUser(player.userId);
+            const dimmed = hoveredId != null && hoveredId !== player.userId;
+            const focused = hoveredId === player.userId;
             return (
-              <g key={player.userId}>
+              <g
+                key={player.userId}
+                className="race-line-group"
+                opacity={dimmed ? 0.18 : 1}
+                style={{ transition: "opacity 160ms ease" }}
+                onMouseEnter={() => setHoveredId(player.userId)}
+                onMouseLeave={() => setHoveredId(null)}
+                onFocus={() => setHoveredId(player.userId)}
+                onBlur={() => setHoveredId(null)}
+              >
                 <path
                   d={path}
                   fill="none"
@@ -238,27 +251,88 @@ export function RaceChart({ data, live = false }: Props) {
                   strokeWidth={5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  opacity={0.35}
+                  opacity={focused ? 0.55 : 0.35}
                   filter={`url(#${svgId}-glow)`}
+                  className="pointer-events-none"
                 />
                 <path
                   d={path}
                   fill="none"
                   stroke={color}
-                  strokeWidth={2.25}
+                  strokeWidth={focused ? 3 : 2.25}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="pointer-events-none"
                 />
+                {/* Wide invisible hit target */}
+                <path
+                  d={path}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={16}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="cursor-pointer"
+                  tabIndex={0}
+                  role="img"
+                  aria-label={player.displayName}
+                />
+                {focused ? (
+                  <g
+                    transform={`translate(${end.x}, ${Math.max(end.y - 18, 14)})`}
+                    className="race-hover-bubble pointer-events-none"
+                  >
+                    <rect
+                      x={-bubbleWidth(player.displayName) / 2}
+                      y={-16}
+                      width={bubbleWidth(player.displayName)}
+                      height={22}
+                      rx={11}
+                      fill="var(--surface)"
+                      stroke={color}
+                      strokeWidth={1.5}
+                    />
+                    <polygon
+                      points={`-5,6 5,6 0,12`}
+                      fill={color}
+                      transform="translate(0, 0)"
+                    />
+                    <text
+                      textAnchor="middle"
+                      y={-1}
+                      className="fill-foreground"
+                      fontSize={11}
+                      fontWeight={600}
+                    >
+                      {player.displayName}
+                    </text>
+                  </g>
+                ) : null}
               </g>
             );
           })}
 
-          {chart.leader ? (
+          {chart.leader && hoveredId == null ? (
             <g
               transform={`translate(${chart.leader.cx}, ${chart.leader.cy})`}
-              className="race-crown"
+              className="race-crown pointer-events-none"
             >
               <circle r={11} fill="#ffc1d1" opacity={0.35} />
+              <foreignObject x={-9} y={-20} width={18} height={18}>
+                <Crown
+                  className="size-[18px] text-[#f5c518]"
+                  fill="#f5c518"
+                  strokeWidth={1.25}
+                  stroke="#c9a227"
+                />
+              </foreignObject>
+            </g>
+          ) : null}
+          {chart.leader && hoveredId === chart.leaderId ? (
+            <g
+              transform={`translate(${chart.leader.cx}, ${chart.leader.cy})`}
+              className="race-crown pointer-events-none"
+            >
               <foreignObject x={-9} y={-20} width={18} height={18}>
                 <Crown
                   className="size-[18px] text-[#f5c518]"
@@ -277,12 +351,17 @@ export function RaceChart({ data, live = false }: Props) {
           const last = display.points[display.points.length - 1];
           const pts = last?.pointsByUser[p.userId] ?? 0;
           const isLeader = chart.leaderId === p.userId;
+          const dimmed = hoveredId != null && hoveredId !== p.userId;
           return (
             <li
               key={p.userId}
-              className={`inline-flex items-center gap-1.5 text-xs ${
-                isLeader ? "font-semibold text-foreground" : "text-muted"
-              }`}
+              onMouseEnter={() => setHoveredId(p.userId)}
+              onMouseLeave={() => setHoveredId(null)}
+              className={`inline-flex cursor-pointer items-center gap-1.5 text-xs transition-opacity ${
+                isLeader || hoveredId === p.userId
+                  ? "font-semibold text-foreground"
+                  : "text-muted"
+              } ${dimmed ? "opacity-35" : "opacity-100"}`}
             >
               <span
                 className="size-2.5 rounded-full"
@@ -311,7 +390,7 @@ export function RaceChart({ data, live = false }: Props) {
 function layoutChart(data: RaceChartData) {
   const width = 640;
   const height = 260;
-  const pad = { t: 24, r: 20, b: 36, l: 36 };
+  const pad = { t: 36, r: 28, b: 36, l: 36 };
   const plotW = width - pad.l - pad.r;
   const plotH = height - pad.t - pad.b;
 
@@ -332,6 +411,7 @@ function layoutChart(data: RaceChartData) {
   const yAt = (y: number) => pad.t + plotH - (y / yMax) * plotH;
 
   const paths: Record<string, string> = {};
+  const ends: Record<string, { x: number; y: number }> = {};
   for (const player of data.players) {
     const coords = data.points.map((pt) => ({
       x: xAt(pt.x),
@@ -340,6 +420,8 @@ function layoutChart(data: RaceChartData) {
     paths[player.userId] = coords
       .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
       .join(" ");
+    const lastCoord = coords[coords.length - 1];
+    if (lastCoord) ends[player.userId] = lastCoord;
   }
 
   const last = data.points[data.points.length - 1];
@@ -379,11 +461,16 @@ function layoutChart(data: RaceChartData) {
     height,
     pad,
     paths,
+    ends,
     yTicks,
     xLabels,
     leader,
     leaderId,
   };
+}
+
+function bubbleWidth(name: string) {
+  return Math.min(160, Math.max(56, name.length * 7.2 + 20));
 }
 
 export function RaceChartSection({
