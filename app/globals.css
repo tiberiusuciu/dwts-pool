@@ -902,15 +902,18 @@ body {
 
 @keyframes crowning-confetti-fall {
   0% {
-    transform: translate3d(0, -6px, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(0deg);
     opacity: 0;
   }
-  10% {
+  8% {
     opacity: 1;
   }
+  55% {
+    opacity: 0.85;
+  }
   100% {
-    transform: translate3d(var(--dx, 12px), var(--fall), 0) rotate(420deg);
-    opacity: 0.2;
+    transform: translate3d(var(--dx, 18px), var(--fall), 0) rotate(360deg);
+    opacity: 0;
   }
 }
 
@@ -945,10 +948,10 @@ body {
 }
 
 .race-legend-crowning .crowning-confetti {
-  /* Cover the pill and a little above so pieces fall through the chip */
-  inset: -10px -6px -14px -6px;
+  /* Room to fan out past the chip edges */
+  inset: -18px -28px -22px -28px;
   overflow: visible;
-  --fall: 48px;
+  --fall: 56px;
   border-radius: 9999px;
 }
 

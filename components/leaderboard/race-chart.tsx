@@ -449,7 +449,7 @@ export function RaceChart({ data, live = false }: Props) {
                 crowningId === p.userId ? "race-legend-crowning z-20" : ""
               }`}
             >
-              {crowningId === p.userId ? <CrowningConfetti count={26} /> : null}
+              {crowningId === p.userId ? <CrowningConfetti /> : null}
               <span
                 className="relative z-[3] size-2.5 shrink-0 rounded-full"
                 style={{ background: colorForUser(p.userId) }}
