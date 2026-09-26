@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 import { useT } from "@/components/i18n/locale-provider";
@@ -168,10 +168,51 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
   );
 }
 
+function CrowningConfetti() {
+  return (
+    <div className="leaderboard-confetti" aria-hidden>
+      {Array.from({ length: 22 }).map((_, i) => (
+        <span
+          key={i}
+          style={
+            {
+              left: `${4 + ((i * 17) % 92)}%`,
+              animationDelay: `${(i % 10) * 0.12}s`,
+              "--dx": `${(i % 2 === 0 ? 1 : -1) * (8 + (i % 7) * 4)}px`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
   const t = useT();
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [crowningId, setCrowningId] = useState<string | null>(null);
+  const prevLeaderRef = useRef<string | null>(null);
+  const crownTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    const leader = entries.find((e) => e.rank === 1)?.userId ?? null;
+    const prev = prevLeaderRef.current;
+    if (leader && prev && prev !== leader) {
+      if (crownTimerRef.current) clearTimeout(crownTimerRef.current);
+      setCrowningId(leader);
+      crownTimerRef.current = setTimeout(() => setCrowningId(null), 5000);
+    }
+    if (leader) prevLeaderRef.current = leader;
+  }, [entries]);
+
+  useEffect(() => {
+    return () => {
+      if (crownTimerRef.current) clearTimeout(crownTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     let source: EventSource | null = null;
@@ -217,13 +258,16 @@ export function LeaderboardList({ entries }: { entries: LeaderboardEntry[] }) {
         return (
           <li
             key={entry.userId}
-            className="overflow-hidden rounded-2xl border border-border bg-surface"
+            className={`overflow-hidden rounded-2xl border border-border bg-surface ${
+              crowningId === entry.userId ? "leaderboard-crowning" : ""
+            }`}
           >
+            {crowningId === entry.userId ? <CrowningConfetti /> : null}
             <button
               type="button"
               onClick={() => setOpenId(open ? null : entry.userId)}
               aria-expanded={open}
-              className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-background"
+              className="relative z-[3] flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-background"
             >
               <RankBadge rank={entry.rank} />
               <span className="min-w-0 flex-1">

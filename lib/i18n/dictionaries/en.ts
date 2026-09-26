@@ -312,6 +312,12 @@ export const en = {
       "Tonight’s points as couples get scored. Totals can still move until every score and the elimination are in.",
     tabTonight: "Tonight",
     tabAllTime: "All-time",
+    tabOtherEpisodes: "Other episodes",
+    archivePickerLabel: "Episodes",
+    archiveEpLabel: "Ep {number}",
+    archiveBody:
+      "How the board moved that night — mid-show snapshots when we have them, otherwise the final episode totals.",
+    archiveEyebrow: "Episode race",
   },
 } as const;
 

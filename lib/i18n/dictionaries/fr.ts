@@ -320,5 +320,11 @@ export const fr = {
       "Points de ce soir à mesure que les couples sont notés. Les totaux peuvent encore bouger jusqu'à la dernière note et l'élimination.",
     tabTonight: "Ce soir",
     tabAllTime: "Saison",
+    tabOtherEpisodes: "Autres épisodes",
+    archivePickerLabel: "Épisodes",
+    archiveEpLabel: "Ép. {number}",
+    archiveBody:
+      "Comment le classement a bougé ce soir-là — instantanés en cours d'émission quand on les a, sinon les totaux finaux de l'épisode.",
+    archiveEyebrow: "Course de l'épisode",
   },
 } as const satisfies Dictionary;

@@ -150,10 +150,10 @@ export function RaceChart({ data, live = false }: Props) {
     <section
       className={`race-chart relative overflow-hidden rounded-2xl border border-border bg-surface/90 p-4 sm:p-5 ${
         flash ? "race-chart-flash" : ""
-      }`}
+      } ${live && display.projected ? "race-chart--live" : ""}`}
     >
       <div className="race-chart-particles pointer-events-none absolute inset-0" aria-hidden>
-        {Array.from({ length: 18 }).map((_, i) => (
+        {Array.from({ length: live && display.projected ? 28 : 18 }).map((_, i) => (
           <span key={i} className={`race-particle race-particle-${i % 6}`} />
         ))}
       </div>
@@ -169,6 +169,8 @@ export function RaceChart({ data, live = false }: Props) {
                 <LivePulse />
                 <span>{t("timeline.statusLive")}</span>
               </span>
+            ) : display.mode === "episode" ? (
+              t("race.archiveEyebrow")
             ) : (
               t("race.seasonEyebrow")
             )}
@@ -181,7 +183,9 @@ export function RaceChart({ data, live = false }: Props) {
               ? t("race.allTimeProjectedBody")
               : display.projected
                 ? t("race.projectedBody")
-                : t("race.allTimeBody")}
+                : display.mode === "episode"
+                  ? t("race.archiveBody")
+                  : t("race.allTimeBody")}
           </p>
         </div>
       </header>
@@ -605,49 +609,108 @@ function interpolateSeries(
 export function RaceChartSection({
   allTime,
   liveRace,
+  pastRaces = [],
 }: {
   allTime: RaceChartData;
   liveRace: RaceChartData | null;
+  pastRaces?: RaceChartData[];
 }) {
   const t = useT();
-  const [mode, setMode] = useState<"race" | "all-time">(
-    liveRace ? "race" : "all-time",
+  type Mode = "race" | "all-time" | "archive";
+  const [mode, setMode] = useState<Mode>(liveRace ? "race" : "all-time");
+  const [archiveId, setArchiveId] = useState<string | null>(
+    pastRaces[0]?.episodeId ?? null,
   );
 
-  const showToggle = Boolean(liveRace);
+  const archiveRace =
+    pastRaces.find((r) => r.episodeId === archiveId) ?? pastRaces[0] ?? null;
+
+  const tabs: { id: Mode; label: string; show: boolean }[] = [
+    { id: "race", label: t("race.tabTonight"), show: Boolean(liveRace) },
+    { id: "all-time", label: t("race.tabAllTime"), show: true },
+    {
+      id: "archive",
+      label: t("race.tabOtherEpisodes"),
+      show: pastRaces.length > 0,
+    },
+  ];
+  const visibleTabs = tabs.filter((tab) => tab.show);
+  const showToggle = visibleTabs.length > 1;
+
+  const chartData =
+    mode === "race" && liveRace
+      ? liveRace
+      : mode === "archive" && archiveRace
+        ? archiveRace
+        : allTime;
 
   return (
     <div className="space-y-3">
       {showToggle ? (
         <div className="flex gap-1 rounded-xl border border-border bg-background/60 p-1">
-          <button
-            type="button"
-            onClick={() => setMode("race")}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
-              mode === "race"
-                ? "bg-accent text-white"
-                : "text-muted hover:text-foreground"
-            }`}
-          >
-            {t("race.tabTonight")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("all-time")}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
-              mode === "all-time"
-                ? "bg-accent text-white"
-                : "text-muted hover:text-foreground"
-            }`}
-          >
-            {t("race.tabAllTime")}
-          </button>
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMode(tab.id)}
+              className={`flex-1 rounded-lg px-2 py-2 text-xs font-semibold transition-colors sm:px-3 sm:text-sm ${
+                mode === tab.id
+                  ? "bg-accent text-white"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       ) : null}
-      <RaceChart
-        data={mode === "race" && liveRace ? liveRace : allTime}
-        live={Boolean(liveRace) || allTime.projected}
-      />
+
+      {mode === "archive" && pastRaces.length > 0 ? (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <aside className="sm:w-44 sm:shrink-0">
+            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+              {t("race.archivePickerLabel")}
+            </p>
+            <div className="flex gap-1 overflow-x-auto pb-1 sm:max-h-64 sm:flex-col sm:overflow-y-auto sm:overflow-x-hidden sm:pb-0">
+              {pastRaces.map((ep) => {
+                const active = (archiveRace?.episodeId ?? null) === ep.episodeId;
+                return (
+                  <button
+                    key={ep.episodeId}
+                    type="button"
+                    onClick={() => setArchiveId(ep.episodeId ?? null)}
+                    className={`shrink-0 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors sm:w-full ${
+                      active
+                        ? "bg-accent/15 text-accent"
+                        : "text-muted hover:bg-background hover:text-foreground"
+                    }`}
+                  >
+                    <span className="block tabular-nums">
+                      {t("race.archiveEpLabel", {
+                        number: ep.episodeNumber ?? "",
+                      })}
+                    </span>
+                    <span className="block truncate text-[11px] opacity-80">
+                      {ep.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+          <div className="min-w-0 flex-1">
+            <RaceChart
+              data={chartData}
+              live={Boolean(liveRace) || allTime.projected}
+            />
+          </div>
+        </div>
+      ) : (
+        <RaceChart
+          data={chartData}
+          live={Boolean(liveRace) || allTime.projected}
+        />
+      )}
     </div>
   );
 }
