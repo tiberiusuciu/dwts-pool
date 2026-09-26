@@ -26,26 +26,68 @@ function colorForUser(userId: string): string {
   return PALETTE[h % PALETTE.length]!;
 }
 
+/** Track live-episode lead changes; only celebrate while `watching` the tonight chart. */
+export function useLiveDethrone(
+  liveRace: RaceChartData | null,
+  watching: boolean,
+) {
+  const [crowningId, setCrowningId] = useState<string | null>(null);
+  const prevLeaderRef = useRef<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const liveKey = useMemo(
+    () => (liveRace ? seriesKey(liveRace) : ""),
+    [liveRace],
+  );
+
+  useEffect(() => {
+    if (!liveRace || liveRace.mode !== "episode" || !liveRace.projected) {
+      return;
+    }
+    const leaderId = seriesLeaderId(liveRace);
+    const prev = prevLeaderRef.current;
+    if (watching && leaderId && prev && prev !== leaderId) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setCrowningId(leaderId);
+      timerRef.current = setTimeout(() => setCrowningId(null), 5000);
+    }
+    // Always remember the live leader so tab switches don't look like a dethrone
+    if (leaderId) prevLeaderRef.current = leaderId;
+  }, [liveKey, liveRace, watching]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return watching ? crowningId : null;
+}
+
 type Props = {
   data: RaceChartData;
   /** Subscribe to leaderboard SSE for live refresh */
   live?: boolean;
+  /** Player id currently celebrating a dethrone (controlled by parent). */
+  crowningId?: string | null;
 };
 
-export function RaceChart({ data, live = false }: Props) {
+export function RaceChart({ data, live = false, crowningId }: Props) {
   const t = useT();
   const router = useRouter();
   const svgId = useId().replace(/:/g, "");
+  const uncontrolled = crowningId === undefined;
+  const autoCrown = useLiveDethrone(
+    uncontrolled && live && data.mode === "episode" && data.projected
+      ? data
+      : null,
+    uncontrolled,
+  );
+  const activeCrown = uncontrolled ? autoCrown : crowningId;
   const [flash, setFlash] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [crowningId, setCrowningId] = useState<string | null>(null);
   const [display, setDisplay] = useState(data);
   const displayRef = useRef(data);
   const yMaxRef = useRef(seriesYMax(data));
-  const prevLeaderRef = useRef<string | null>(null);
-  const crownTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
   const rafRef = useRef(0);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -58,24 +100,6 @@ export function RaceChart({ data, live = false }: Props) {
   useEffect(() => {
     displayRef.current = display;
   }, [display]);
-
-  useEffect(() => {
-    if (!(live && data.projected)) return;
-    const leaderId = seriesLeaderId(data);
-    const prev = prevLeaderRef.current;
-    if (leaderId && prev && prev !== leaderId) {
-      if (crownTimerRef.current) clearTimeout(crownTimerRef.current);
-      setCrowningId(leaderId);
-      crownTimerRef.current = setTimeout(() => setCrowningId(null), 5000);
-    }
-    if (leaderId) prevLeaderRef.current = leaderId;
-  }, [dataKey, data, live]);
-
-  useEffect(() => {
-    return () => {
-      if (crownTimerRef.current) clearTimeout(crownTimerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     if (!live) return;
@@ -445,11 +469,11 @@ export function RaceChart({ data, live = false }: Props) {
                 isLeader || hoveredId === p.userId
                   ? "font-semibold text-foreground"
                   : "text-muted"
-              } ${dimmed && crowningId !== p.userId ? "opacity-35" : "opacity-100"} ${
-                crowningId === p.userId ? "race-legend-crowning z-20" : ""
+              } ${dimmed && activeCrown !== p.userId ? "opacity-35" : "opacity-100"} ${
+                activeCrown === p.userId ? "race-legend-crowning z-20" : ""
               }`}
             >
-              {crowningId === p.userId ? <CrowningConfetti /> : null}
+              {activeCrown === p.userId ? <CrowningConfetti /> : null}
               <span
                 className="relative z-[3] size-2.5 shrink-0 rounded-full"
                 style={{ background: colorForUser(p.userId) }}
@@ -663,6 +687,7 @@ export function RaceChartSection({
   const [archiveId, setArchiveId] = useState<string | null>(
     pastRaces[0]?.episodeId ?? null,
   );
+  const crowningId = useLiveDethrone(liveRace, mode === "race");
 
   const archiveRace =
     pastRaces.find((r) => r.episodeId === archiveId) ?? pastRaces[0] ?? null;
@@ -744,6 +769,7 @@ export function RaceChartSection({
             <RaceChart
               data={chartData}
               live={Boolean(liveRace) || allTime.projected}
+              crowningId={null}
             />
           </div>
         </div>
@@ -751,6 +777,7 @@ export function RaceChartSection({
         <RaceChart
           data={chartData}
           live={Boolean(liveRace) || allTime.projected}
+          crowningId={crowningId}
         />
       )}
     </div>
