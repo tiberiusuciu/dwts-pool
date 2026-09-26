@@ -63,11 +63,6 @@ export async function captureEpisodeRaceSnapshot(
     where: { episodeId, scoredCount: { gt: scoredCount } },
   });
 
-  if (scoredCount === 0) {
-    await prisma.episodeRaceSnapshot.deleteMany({ where: { episodeId } });
-    return { scoredCount: 0 };
-  }
-
   const [users, couples, activeWinnerCoupleId] = await Promise.all([
     prisma.user.findMany({
       where: { displayName: { not: null } },
@@ -77,35 +72,39 @@ export async function captureEpisodeRaceSnapshot(
     getSeasonWinnerCoupleId(),
   ]);
 
-  const allPredictions = await prisma.prediction.findMany({
-    where: {
-      userId: { in: users.map((u) => u.id) },
-      kind: {
-        in: [
-          PredictionKind.SEASON_WINNER,
-          PredictionKind.WEEKLY_ELIMINATION,
-          PredictionKind.WEEKLY_RANK,
-        ],
-      },
-    },
-  });
-
   const pointsByUser: Record<string, number> = {};
-  for (const user of users) {
-    const preds = allPredictions.filter(
-      (p) =>
-        p.userId === user.id &&
-        (p.kind === PredictionKind.SEASON_WINNER ||
-          p.episodeId === episodeId),
-    );
-    const breakdown = scoreEpisodeFromData({
-      episode,
-      results: episode.actualResults,
-      predictions: preds,
-      couples,
-      activeWinnerCoupleId: episode.isFinale ? activeWinnerCoupleId : null,
+  if (scoredCount === 0) {
+    for (const user of users) pointsByUser[user.id] = 0;
+  } else {
+    const allPredictions = await prisma.prediction.findMany({
+      where: {
+        userId: { in: users.map((u) => u.id) },
+        kind: {
+          in: [
+            PredictionKind.SEASON_WINNER,
+            PredictionKind.WEEKLY_ELIMINATION,
+            PredictionKind.WEEKLY_RANK,
+          ],
+        },
+      },
     });
-    pointsByUser[user.id] = breakdown.total;
+
+    for (const user of users) {
+      const preds = allPredictions.filter(
+        (p) =>
+          p.userId === user.id &&
+          (p.kind === PredictionKind.SEASON_WINNER ||
+            p.episodeId === episodeId),
+      );
+      const breakdown = scoreEpisodeFromData({
+        episode,
+        results: episode.actualResults,
+        predictions: preds,
+        couples,
+        activeWinnerCoupleId: episode.isFinale ? activeWinnerCoupleId : null,
+      });
+      pointsByUser[user.id] = breakdown.total;
+    }
   }
 
   await prisma.episodeRaceSnapshot.upsert({
@@ -150,7 +149,12 @@ export async function getEpisodeRaceSeries(
     }),
   ]);
 
-  if (!episode || snapshots.length === 0) return null;
+  if (!episode) return null;
+
+  const isLive = episode.status === EpisodeStatus.LIVE;
+  // LIVE episodes always show a race chart (baseline at 0 until scores land).
+  // Past episodes only if we captured mid-night snapshots.
+  if (!isLive && snapshots.length === 0) return null;
 
   const players: RacePlayer[] = users.map((u) => ({
     userId: u.id,
@@ -160,9 +164,10 @@ export async function getEpisodeRaceSeries(
   const zero: Record<string, number> = {};
   for (const p of players) zero[p.userId] = 0;
 
+  const scoredSnapshots = snapshots.filter((s) => s.scoredCount > 0);
   const points: RaceSeriesPoint[] = [
     { x: 0, label: "0", pointsByUser: { ...zero } },
-    ...snapshots.map((s) => ({
+    ...scoredSnapshots.map((s) => ({
       x: s.scoredCount,
       label: String(s.scoredCount),
       pointsByUser: asPointsMap(s.pointsByUser),
@@ -174,7 +179,7 @@ export async function getEpisodeRaceSeries(
     episodeId: episode.id,
     episodeNumber: episode.episodeNumber,
     title: episode.title,
-    projected: episode.status === EpisodeStatus.LIVE,
+    projected: isLive,
     players,
     points,
   };
