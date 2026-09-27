@@ -104,19 +104,21 @@ function StandingChip({
         ·
       </span>
       <span className="relative inline-flex items-baseline">
-        {standing.totalPoints}
+        <span className="relative">
+          {standing.totalPoints}
+          {delta != null && delta !== 0 ? (
+            <span
+              key={`${standing.totalPoints}-${delta}`}
+              className={`standing-delta pointer-events-none absolute left-1/2 z-10 whitespace-nowrap text-[11px] font-bold tabular-nums sm:text-xs ${
+                delta > 0 ? "standing-delta-gain" : "standing-delta-loss"
+              }`}
+              aria-hidden
+            >
+              {delta > 0 ? `+${delta}` : String(delta)}
+            </span>
+          ) : null}
+        </span>
         <span className="ml-0.5 text-muted">{t("nav.pts")}</span>
-        {delta != null && delta !== 0 ? (
-          <span
-            key={`${standing.totalPoints}-${delta}`}
-            className={`standing-delta pointer-events-none absolute left-1/2 z-10 whitespace-nowrap text-[11px] font-bold tabular-nums sm:text-xs ${
-              delta > 0 ? "standing-delta-gain" : "standing-delta-loss"
-            }`}
-            aria-hidden
-          >
-            {delta > 0 ? `+${delta}` : String(delta)}
-          </span>
-        ) : null}
       </span>
     </Link>
   );
