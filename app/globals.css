@@ -427,19 +427,19 @@ body {
 @keyframes standing-delta-drop {
   0% {
     opacity: 0;
-    transform: translate(-50%, -8px) scale(0.7);
+    transform: translate(-50%, 10px) scale(0.7);
   }
   18% {
     opacity: 1;
-    transform: translate(-50%, 2px) scale(1.1);
+    transform: translate(-50%, 14px) scale(1.1);
   }
   55% {
     opacity: 1;
-    transform: translate(-50%, 8px) scale(1);
+    transform: translate(-50%, 20px) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, 16px) scale(0.95);
+    transform: translate(-50%, 28px) scale(0.95);
   }
 }
 
