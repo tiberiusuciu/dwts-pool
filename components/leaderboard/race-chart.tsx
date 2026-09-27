@@ -291,7 +291,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
         </div>
       </header>
 
-      <div className="relative z-10">
+      <div className="relative z-10 overflow-visible">
         <svg
           viewBox={`0 0 ${chart.width} ${chart.height}`}
           className="h-auto w-full outline-none [&_*]:outline-none"
@@ -323,11 +323,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               <rect
                 x={0}
                 y={0}
-                width={Math.max(
-                  0,
-                  chart.pad.l +
-                    (chart.width - chart.pad.l - chart.pad.r) * drawProgress,
-                )}
+                width={Math.max(0, chart.width * drawProgress)}
                 height={chart.height}
               />
             </clipPath>
@@ -452,44 +448,56 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
                   tabIndex={-1}
                   aria-hidden
                 />
-                {focused ? (
-                  <g
-                    transform={`translate(${clampBubbleX(end.x, player.displayName, chart.width)}, ${Math.max(end.y - 18, 14)})`}
-                    className="race-hover-bubble pointer-events-none"
-                  >
-                    <rect
-                      x={-bubbleWidth(player.displayName) / 2}
-                      y={-16}
-                      width={bubbleWidth(player.displayName)}
-                      height={22}
-                      rx={11}
-                      fill="var(--surface)"
-                      stroke={color}
-                      strokeWidth={1.5}
-                    />
-                    <polygon
-                      points={`-5,6 5,6 0,12`}
-                      fill={color}
-                      transform={`translate(${end.x - clampBubbleX(end.x, player.displayName, chart.width)}, 0)`}
-                    />
-                    <text
-                      textAnchor="middle"
-                      y={-1}
-                      className="fill-foreground"
-                      fontSize={11}
-                      fontWeight={600}
-                    >
-                      {player.displayName}
-                    </text>
-                  </g>
-                ) : null}
               </g>
             );
           })}
+          </g>
+
+          {/* Crowns / name bubbles sit outside the draw clip so they aren't cut at the tip */}
+          {drawProgress > 0.92 &&
+            display.players.map((player) => {
+              if (hoveredId !== player.userId) return null;
+              const end = chart.ends[player.userId];
+              if (!end) return null;
+              const color = colorForUser(player.userId);
+              const bx = clampBubbleX(end.x, player.displayName, chart.width);
+              return (
+                <g
+                  key={`bubble-${player.userId}`}
+                  transform={`translate(${bx}, ${Math.max(end.y - 18, 14)})`}
+                  className="race-hover-bubble pointer-events-none"
+                >
+                  <rect
+                    x={-bubbleWidth(player.displayName) / 2}
+                    y={-16}
+                    width={bubbleWidth(player.displayName)}
+                    height={22}
+                    rx={11}
+                    fill="var(--surface)"
+                    stroke={color}
+                    strokeWidth={1.5}
+                  />
+                  <polygon
+                    points={`-5,6 5,6 0,12`}
+                    fill={color}
+                    transform={`translate(${end.x - bx}, 0)`}
+                  />
+                  <text
+                    textAnchor="middle"
+                    y={-1}
+                    className="fill-foreground"
+                    fontSize={11}
+                    fontWeight={600}
+                  >
+                    {player.displayName}
+                  </text>
+                </g>
+              );
+            })}
 
           {chart.leader && hoveredId == null && drawProgress > 0.92 ? (
             <g
-              transform={`translate(${chart.leader.cx}, ${chart.leader.cy - 4})`}
+              transform={`translate(${Math.min(chart.leader.cx, chart.width - 12)}, ${chart.leader.cy - 4})`}
               className="race-crown pointer-events-none"
             >
               <foreignObject x={-9} y={-20} width={18} height={18}>
@@ -504,7 +512,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
           ) : null}
           {chart.leader && hoveredId === chart.leaderId && drawProgress > 0.92 ? (
             <g
-              transform={`translate(${chart.leader.cx}, ${chart.leader.cy - 4})`}
+              transform={`translate(${Math.min(chart.leader.cx, chart.width - 12)}, ${chart.leader.cy - 4})`}
               className="race-crown pointer-events-none"
             >
               <foreignObject x={-9} y={-20} width={18} height={18}>
@@ -517,7 +525,6 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               </foreignObject>
             </g>
           ) : null}
-          </g>
         </svg>
       </div>
 
@@ -568,7 +575,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
 function layoutChart(data: RaceChartData, lockedYMax?: number) {
   const width = 640;
   const height = 260;
-  const pad = { t: 40, r: 56, b: 36, l: 36 };
+  const pad = { t: 36, r: 28, b: 36, l: 36 };
   const plotW = width - pad.l - pad.r;
   const plotH = height - pad.t - pad.b;
 
