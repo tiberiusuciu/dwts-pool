@@ -510,21 +510,6 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               </foreignObject>
             </g>
           ) : null}
-          {chart.leader && hoveredId === chart.leaderId && drawProgress > 0.92 ? (
-            <g
-              transform={`translate(${Math.min(chart.leader.cx, chart.width - 12)}, ${chart.leader.cy - 4})`}
-              className="race-crown pointer-events-none"
-            >
-              <foreignObject x={-9} y={-20} width={18} height={18}>
-                <Crown
-                  className="size-[18px] text-[#f5c518]"
-                  fill="#f5c518"
-                  strokeWidth={1.25}
-                  stroke="#c9a227"
-                />
-              </foreignObject>
-            </g>
-          ) : null}
         </svg>
       </div>
 
