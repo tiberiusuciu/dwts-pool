@@ -495,21 +495,29 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               );
             })}
 
-          {chart.leader && hoveredId == null && drawProgress > 0.92 ? (
-            <g
-              transform={`translate(${Math.min(chart.leader.cx, chart.width - 12)}, ${chart.leader.cy - 4})`}
-              className="race-crown pointer-events-none"
-            >
-              <foreignObject x={-9} y={-20} width={18} height={18}>
-                <Crown
-                  className="size-[18px] text-[#f5c518]"
-                  fill="#f5c518"
-                  strokeWidth={1.25}
-                  stroke="#c9a227"
-                />
-              </foreignObject>
-            </g>
-          ) : null}
+          {hoveredId == null && drawProgress > 0.92
+            ? chart.leaders.map((L, i) => {
+                const n = chart.leaders.length;
+                const spread = n <= 1 ? 0 : (i - (n - 1) / 2) * 14;
+                const cx = Math.min(L.cx + spread, chart.width - 12);
+                return (
+                  <g
+                    key={`crown-${L.userId}`}
+                    transform={`translate(${cx}, ${L.cy - 4})`}
+                    className="race-crown pointer-events-none"
+                  >
+                    <foreignObject x={-9} y={-20} width={18} height={18}>
+                      <Crown
+                        className="size-[18px] text-[#f5c518]"
+                        fill="#f5c518"
+                        strokeWidth={1.25}
+                        stroke="#c9a227"
+                      />
+                    </foreignObject>
+                  </g>
+                );
+              })
+            : null}
         </svg>
       </div>
 
@@ -517,7 +525,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
         {display.players.map((p) => {
           const last = display.points[display.points.length - 1];
           const pts = last?.pointsByUser[p.userId] ?? 0;
-          const isLeader = chart.leaderId === p.userId;
+          const isLeader = chart.leaderIds.includes(p.userId);
           const dimmed = hoveredId != null && hoveredId !== p.userId;
           return (
             <li
@@ -610,25 +618,28 @@ function layoutChart(data: RaceChartData, lockedYMax?: number) {
   }
 
   const last = data.points[data.points.length - 1];
-  let leaderId: string | null = null;
   let leaderPts = -1;
+  const leaderIds: string[] = [];
   if (last) {
     for (const p of data.players) {
       const v = last.pointsByUser[p.userId] ?? 0;
       if (v > leaderPts) {
         leaderPts = v;
-        leaderId = p.userId;
+        leaderIds.length = 0;
+        leaderIds.push(p.userId);
+      } else if (v === leaderPts && leaderPts >= 0) {
+        leaderIds.push(p.userId);
       }
     }
   }
 
-  let leader: { cx: number; cy: number } | null = null;
-  if (leaderId && last) {
-    leader = {
-      cx: xAt(last.x),
-      cy: yAt(last.pointsByUser[leaderId] ?? 0),
-    };
-  }
+  const leaders = leaderIds.map((id) => ({
+    userId: id,
+    cx: last ? xAt(last.x) : 0,
+    cy: last ? yAt(last.pointsByUser[id] ?? 0) : 0,
+  }));
+  const leaderId = leaderIds[0] ?? null;
+  const leader = leaders[0] ?? null;
 
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
     const v = Math.round(yMax * f);
@@ -651,6 +662,8 @@ function layoutChart(data: RaceChartData, lockedYMax?: number) {
     xLabels,
     leader,
     leaderId,
+    leaders,
+    leaderIds,
   };
 }
 
