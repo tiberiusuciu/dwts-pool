@@ -454,7 +454,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
                 />
                 {focused ? (
                   <g
-                    transform={`translate(${end.x}, ${Math.max(end.y - 18, 14)})`}
+                    transform={`translate(${clampBubbleX(end.x, player.displayName, chart.width)}, ${Math.max(end.y - 18, 14)})`}
                     className="race-hover-bubble pointer-events-none"
                   >
                     <rect
@@ -470,7 +470,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
                     <polygon
                       points={`-5,6 5,6 0,12`}
                       fill={color}
-                      transform="translate(0, 0)"
+                      transform={`translate(${end.x - clampBubbleX(end.x, player.displayName, chart.width)}, 0)`}
                     />
                     <text
                       textAnchor="middle"
@@ -487,9 +487,9 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
             );
           })}
 
-          {chart.leader && hoveredId == null ? (
+          {chart.leader && hoveredId == null && drawProgress > 0.92 ? (
             <g
-              transform={`translate(${chart.leader.cx}, ${chart.leader.cy})`}
+              transform={`translate(${chart.leader.cx}, ${chart.leader.cy - 4})`}
               className="race-crown pointer-events-none"
             >
               <foreignObject x={-9} y={-20} width={18} height={18}>
@@ -502,9 +502,9 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               </foreignObject>
             </g>
           ) : null}
-          {chart.leader && hoveredId === chart.leaderId ? (
+          {chart.leader && hoveredId === chart.leaderId && drawProgress > 0.92 ? (
             <g
-              transform={`translate(${chart.leader.cx}, ${chart.leader.cy})`}
+              transform={`translate(${chart.leader.cx}, ${chart.leader.cy - 4})`}
               className="race-crown pointer-events-none"
             >
               <foreignObject x={-9} y={-20} width={18} height={18}>
@@ -568,7 +568,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
 function layoutChart(data: RaceChartData, lockedYMax?: number) {
   const width = 640;
   const height = 260;
-  const pad = { t: 36, r: 28, b: 36, l: 36 };
+  const pad = { t: 40, r: 56, b: 36, l: 36 };
   const plotW = width - pad.l - pad.r;
   const plotH = height - pad.t - pad.b;
 
@@ -671,6 +671,12 @@ function coordsToPath(coords: { x: number; y: number }[]) {
 
 function bubbleWidth(name: string) {
   return Math.min(160, Math.max(56, name.length * 7.2 + 20));
+}
+
+function clampBubbleX(endX: number, name: string, chartWidth: number) {
+  const half = bubbleWidth(name) / 2;
+  const margin = 6;
+  return Math.min(chartWidth - half - margin, Math.max(half + margin, endX));
 }
 
 function seriesYMax(data: RaceChartData) {
