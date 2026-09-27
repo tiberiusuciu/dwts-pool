@@ -20,12 +20,11 @@ const PALETTE = [
   "#c8ff3d", // chartreuse
 ];
 
-function colorMapForPlayers(players: { userId: string }[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (let i = 0; i < players.length; i++) {
-    map[players[i]!.userId] = PALETTE[i % PALETTE.length]!;
-  }
-  return map;
+/** Stable per user — joining/leaving the pool never reassigns existing colors. */
+function colorForUser(userId: string): string {
+  let h = 0;
+  for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+  return PALETTE[h % PALETTE.length]!;
 }
 
 /** Track live-episode lead changes; only celebrate while `watching` the tonight chart. */
@@ -239,10 +238,6 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
     () => layoutChart(display, yMaxRef.current),
     [display],
   );
-  const colors = useMemo(
-    () => colorMapForPlayers(display.players),
-    [display.players],
-  );
 
   const title =
     display.mode === "all-time"
@@ -320,8 +315,8 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
                 x2="1"
                 y2="0"
               >
-                <stop offset="0%" stopColor={colors[p.userId]} stopOpacity="0.15" />
-                <stop offset="100%" stopColor={colors[p.userId]} stopOpacity="0.85" />
+                <stop offset="0%" stopColor={colorForUser(p.userId)} stopOpacity="0.15" />
+                <stop offset="100%" stopColor={colorForUser(p.userId)} stopOpacity="0.85" />
               </linearGradient>
             ))}
             <clipPath id={`${svgId}-draw`}>
@@ -381,7 +376,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
             const paths = chart.paths[player.userId];
             const end = chart.ends[player.userId];
             if (!paths || !end) return null;
-            const color = colors[player.userId] ?? PALETTE[0]!;
+            const color = colorForUser(player.userId);
             const dimmed = hoveredId != null && hoveredId !== player.userId;
             const focused = hoveredId === player.userId;
             const strokeW = focused ? 3 : 2.25;
@@ -548,7 +543,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               {activeCrown === p.userId ? <CrowningConfetti /> : null}
               <span
                 className="relative z-[3] size-2.5 shrink-0 rounded-full"
-                style={{ background: colors[p.userId] ?? PALETTE[0] }}
+                style={{ background: colorForUser(p.userId) }}
               />
               <span className="relative z-[3]">{p.displayName}</span>
               <span className="relative z-[3] tabular-nums opacity-80">
