@@ -133,6 +133,7 @@ export const fr = {
     statusLive: "En direct",
     statusUpcoming: "À venir",
     eliminated: "Éliminé",
+    rankLabel: "Place {rank}",
     scoresLocked: "Les notes s'affichent après l'épisode.",
     scoresLiveWaiting:
       "Les notes apparaissent ici au fur et à mesure que l'hôte les enregistre.",

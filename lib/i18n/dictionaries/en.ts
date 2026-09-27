@@ -128,6 +128,7 @@ export const en = {
     statusLive: "Live",
     statusUpcoming: "Upcoming",
     eliminated: "Eliminated",
+    rankLabel: "Place {rank}",
     scoresLocked: "Scores unlock after the episode.",
     scoresLiveWaiting: "Scores appear here as the host locks them in.",
   },

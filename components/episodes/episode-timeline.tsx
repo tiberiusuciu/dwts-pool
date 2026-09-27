@@ -7,6 +7,7 @@ import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { LivePulse } from "@/components/live/live-pulse";
 import { useT } from "@/components/i18n/locale-provider";
 import type { EpisodeDTO } from "@/lib/episodes";
+import { buildActualRankRanges } from "@/lib/scoring-rules";
 
 function pickDefaultEpisodeId(episodes: EpisodeDTO[]): string {
   const live = episodes.find((e) => e.status === "LIVE");
@@ -41,6 +42,17 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
     }
     return [];
   }, [selected]);
+
+  const rankByCouple = useMemo(
+    () =>
+      buildActualRankRanges(
+        visibleResults.map((r) => ({
+          coupleId: r.couple.id,
+          judgeScore: r.judgeScore,
+        })),
+      ),
+    [visibleResults],
+  );
 
   const statusLabel = (status: EpisodeDTO["status"]) => {
     if (status === "PAST") return t("timeline.statusPast");
@@ -174,12 +186,27 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
 
         {showResults && visibleResults.length > 0 ? (
           <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-            {visibleResults.map((result) => (
+            {visibleResults.map((result) => {
+              const range = rankByCouple.get(result.couple.id);
+              const rankLabel = range
+                ? range.min === range.max
+                  ? String(range.min)
+                  : `${range.min}–${range.max}`
+                : null;
+              return (
               <li
                 key={result.id}
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
                 <div className="flex min-w-0 items-center gap-3">
+                  {rankLabel ? (
+                    <span
+                      className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-background px-1.5 text-[11px] font-bold tabular-nums text-muted"
+                      title={t("timeline.rankLabel", { rank: rankLabel })}
+                    >
+                      {rankLabel}
+                    </span>
+                  ) : null}
                   <CoupleAvatar
                     celebrityName={result.couple.celebrityName}
                     proName={result.couple.proName}
@@ -206,7 +233,8 @@ export function EpisodeTimeline({ episodes }: { episodes: EpisodeDTO[] }) {
                   </span>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : (
           <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
