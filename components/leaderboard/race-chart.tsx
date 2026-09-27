@@ -86,13 +86,17 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
   const [flash, setFlash] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [display, setDisplay] = useState(data);
+  const [drawProgress, setDrawProgress] = useState(0);
   const displayRef = useRef(data);
   const yMaxRef = useRef(seriesYMax(data));
+  const identityRef = useRef<string | null>(null);
   const rafRef = useRef(0);
+  const drawRafRef = useRef(0);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
   const dataKey = useMemo(() => seriesKey(data), [data]);
+  const identityKey = useMemo(() => chartIdentityKey(data), [data]);
   const reduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -100,6 +104,38 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
   useEffect(() => {
     displayRef.current = display;
   }, [display]);
+
+  // Left→right draw whenever the chart series changes (tab / episode).
+  useEffect(() => {
+    if (reduced) {
+      if (drawRafRef.current) cancelAnimationFrame(drawRafRef.current);
+      drawRafRef.current = 0;
+      setDrawProgress(1);
+      return;
+    }
+    if (drawRafRef.current) cancelAnimationFrame(drawRafRef.current);
+    setDrawProgress(0);
+    const start = performance.now();
+    const dur = 1050;
+    let cancelled = false;
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const u = Math.min(1, (now - start) / dur);
+      const e = u * u * (3 - 2 * u);
+      setDrawProgress(e);
+      if (u < 1) {
+        drawRafRef.current = requestAnimationFrame(tick);
+      } else {
+        drawRafRef.current = 0;
+      }
+    };
+    drawRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      if (drawRafRef.current) cancelAnimationFrame(drawRafRef.current);
+      drawRafRef.current = 0;
+    };
+  }, [identityKey, reduced]);
 
   useEffect(() => {
     if (!live) return;
@@ -129,12 +165,28 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
   }, [live, router]);
 
   useEffect(() => {
+    const identityChanged = identityRef.current !== identityKey;
+    identityRef.current = identityKey;
+
     if (reduced) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
       setDisplay(data);
       displayRef.current = data;
       yMaxRef.current = seriesYMax(data);
+      return;
+    }
+
+    // Tab / episode switch: snap to the new series; LTR draw handles the reveal.
+    if (identityChanged) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+      setDisplay(data);
+      displayRef.current = data;
+      yMaxRef.current = seriesYMax(data);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      setFlash(true);
+      flashTimerRef.current = setTimeout(() => setFlash(false), 520);
       return;
     }
 
@@ -179,7 +231,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
       rafRef.current = 0;
     };
     // dataKey: ignore identity-only refreshes that would cancel mid-tween
-  }, [dataKey, data, reduced]);
+  }, [dataKey, data, reduced, identityKey]);
 
   const chart = useMemo(
     () => layoutChart(display, yMaxRef.current),
@@ -266,6 +318,18 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
                 <stop offset="100%" stopColor={colorForUser(p.userId)} stopOpacity="0.85" />
               </linearGradient>
             ))}
+            <clipPath id={`${svgId}-draw`}>
+              <rect
+                x={0}
+                y={0}
+                width={Math.max(
+                  0,
+                  chart.pad.l +
+                    (chart.width - chart.pad.l - chart.pad.r) * drawProgress,
+                )}
+                height={chart.height}
+              />
+            </clipPath>
           </defs>
 
           {/* grid */}
@@ -306,6 +370,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
             </text>
           ))}
 
+          <g clipPath={`url(#${svgId}-draw)`}>
           {display.players.map((player) => {
             const paths = chart.paths[player.userId];
             const end = chart.ends[player.userId];
@@ -451,6 +516,7 @@ export function RaceChart({ data, live = false, crowningId }: Props) {
               </foreignObject>
             </g>
           ) : null}
+          </g>
         </svg>
       </div>
 
@@ -629,6 +695,14 @@ function seriesLeaderId(data: RaceChartData): string | null {
     }
   }
   return leaderId;
+}
+
+function chartIdentityKey(data: RaceChartData) {
+  return [
+    data.mode,
+    data.episodeId ?? "season",
+    data.projected ? "live" : "final",
+  ].join(":");
 }
 
 function seriesKey(data: RaceChartData) {
