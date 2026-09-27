@@ -51,6 +51,51 @@ function asPointsMap(raw: unknown): Record<string, number> {
   return out;
 }
 
+
+const RACE_PRED_KINDS = [
+  PredictionKind.SEASON_WINNER,
+  PredictionKind.WEEKLY_ELIMINATION,
+  PredictionKind.WEEKLY_RANK,
+] as const;
+
+/**
+ * Users who have made pool picks, ordered by first prediction time so a
+ * new joiner appends to the color list without reshuffling veterans.
+ */
+async function getRacePlayers(): Promise<
+  (RacePlayer & { id: string })[]
+> {
+  const users = await prisma.user.findMany({
+    where: {
+      displayName: { not: null },
+      predictions: { some: { kind: { in: [...RACE_PRED_KINDS] } } },
+    },
+    select: {
+      id: true,
+      displayName: true,
+      predictions: {
+        where: { kind: { in: [...RACE_PRED_KINDS] } },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { createdAt: true },
+      },
+    },
+  });
+
+  users.sort((a, b) => {
+    const ta = a.predictions[0]?.createdAt.getTime() ?? 0;
+    const tb = b.predictions[0]?.createdAt.getTime() ?? 0;
+    if (ta !== tb) return ta - tb;
+    return a.id.localeCompare(b.id);
+  });
+
+  return users.map((u) => ({
+    id: u.id,
+    userId: u.id,
+    displayName: u.displayName ?? "Player",
+  }));
+}
+
 export async function captureEpisodeRaceSnapshot(
   episodeId: string,
 ): Promise<{ scoredCount: number } | null> {
@@ -69,10 +114,7 @@ export async function captureEpisodeRaceSnapshot(
   });
 
   const [users, couples, activeWinnerCoupleId] = await Promise.all([
-    prisma.user.findMany({
-      where: { displayName: { not: null } },
-      select: { id: true, displayName: true },
-    }),
+    getRacePlayers(),
     prisma.couple.findMany({ select: { id: true, celebrityName: true } }),
     getSeasonWinnerCoupleId(),
   ]);
@@ -143,11 +185,7 @@ export async function getEpisodeRaceSeries(
         where: { episodeId },
         orderBy: { scoredCount: "asc" },
       }),
-      prisma.user.findMany({
-        where: { displayName: { not: null } },
-        select: { id: true, displayName: true },
-        orderBy: { displayName: "asc" },
-      }),
+      getRacePlayers(),
       prisma.couple.findMany({ select: { id: true, celebrityName: true } }),
       getSeasonWinnerCoupleId(),
     ]);
@@ -165,8 +203,8 @@ export async function getEpisodeRaceSeries(
   }
 
   const players: RacePlayer[] = users.map((u) => ({
-    userId: u.id,
-    displayName: u.displayName ?? "Player",
+    userId: u.userId,
+    displayName: u.displayName,
   }));
 
   const zero: Record<string, number> = {};
@@ -258,11 +296,7 @@ export async function listPastEpisodeRaces(): Promise<RaceChartData[]> {
  */
 export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
   const [users, episodes, couples, activeWinnerCoupleId] = await Promise.all([
-    prisma.user.findMany({
-      where: { displayName: { not: null } },
-      select: { id: true, displayName: true },
-      orderBy: { displayName: "asc" },
-    }),
+    getRacePlayers(),
     prisma.episode.findMany({
       where: {
         OR: [
@@ -281,8 +315,8 @@ export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
   ]);
 
   const players: RacePlayer[] = users.map((u) => ({
-    userId: u.id,
-    displayName: u.displayName ?? "Player",
+    userId: u.userId,
+    displayName: u.displayName,
   }));
 
   const allPredictions = await prisma.prediction.findMany({
