@@ -11,6 +11,7 @@ export const en = {
     standingProjectedTitle: "Projected — updates as scores land",
     projected: "Proj.",
     pts: "pts",
+    hostAdmin: "Host admin",
   },
   lock: {
     locked: "Locked",

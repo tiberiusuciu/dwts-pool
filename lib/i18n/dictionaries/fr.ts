@@ -13,6 +13,7 @@ export const fr = {
     standingProjectedTitle: "Projeté — se met à jour avec les notes",
     projected: "Proj.",
     pts: "pts",
+    hostAdmin: "Admin hôte",
   },
   lock: {
     locked: "Verrouillé",

@@ -37,6 +37,7 @@ export default async function AppLayout({
       prizePoolCents={prizePoolCents}
       liveParty={featured?.status === EpisodeStatus.LIVE}
       projectedStanding={featured?.status === EpisodeStatus.LIVE}
+      isAdmin={session?.user?.role === "ADMIN"}
     >
       {children}
     </AppShell>

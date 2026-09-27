@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Crown, Home, Settings, Trophy } from "lucide-react";
+import { Crown, Home, Radio, Settings, Trophy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useT } from "@/components/i18n/locale-provider";
@@ -111,6 +111,7 @@ export function AppShell({
   prizePoolCents,
   liveParty = false,
   projectedStanding = false,
+  isAdmin = false,
 }: {
   children: React.ReactNode;
   standing: { rank: number; totalPoints: number } | null;
@@ -118,6 +119,7 @@ export function AppShell({
   prizePoolCents: number;
   liveParty?: boolean;
   projectedStanding?: boolean;
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -217,6 +219,25 @@ export function AppShell({
             <PrizePoolChip cents={prizePoolCents} />
             {lockClock ? <LockCountdownChip {...lockClock} /> : null}
             <HowToPlayButton />
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                transitionTypes={
+                  pathname.startsWith("/admin")
+                    ? ["nav-back"]
+                    : ["nav-forward"]
+                }
+                aria-label={t("nav.hostAdmin")}
+                title={t("nav.hostAdmin")}
+                className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                  pathname.startsWith("/admin")
+                    ? "border-accent/50 bg-accent-soft text-accent"
+                    : "border-border bg-background/70 text-muted hover:border-accent/50 hover:text-accent"
+                }`}
+              >
+                <Radio className="size-4" strokeWidth={2} />
+              </Link>
+            ) : null}
             <StandingChip standing={standing} projected={projectedStanding} />
           </div>
         </div>
