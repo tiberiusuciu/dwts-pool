@@ -41,21 +41,28 @@ function StandingChip({
 }) {
   const t = useT();
   const prevPointsRef = useRef<number | null>(null);
-  const [cheer, setCheer] = useState<"small" | "big" | null>(null);
+  const [delta, setDelta] = useState<number | null>(null);
+  const [pulse, setPulse] = useState<"gain" | "loss" | "big-gain" | null>(null);
 
   useEffect(() => {
     if (!standing) return;
     const prev = prevPointsRef.current;
     prevPointsRef.current = standing.totalPoints;
-    if (prev == null || standing.totalPoints <= prev) return;
+    if (prev == null || standing.totalPoints === prev) return;
 
-    const delta = standing.totalPoints - prev;
-    const next = delta >= BIG_CHEER_MIN ? "big" : "small";
-    setCheer(next);
-    const timer = setTimeout(
-      () => setCheer(null),
-      next === "big" ? 1600 : 900,
+    const change = standing.totalPoints - prev;
+    setDelta(change);
+    setPulse(
+      change > 0
+        ? change >= BIG_CHEER_MIN
+          ? "big-gain"
+          : "gain"
+        : "loss",
     );
+    const timer = setTimeout(() => {
+      setDelta(null);
+      setPulse(null);
+    }, change >= BIG_CHEER_MIN || change < 0 ? 1800 : 1200);
     return () => clearTimeout(timer);
   }, [standing]);
 
@@ -65,12 +72,14 @@ function StandingChip({
     <Link
       href="/leaderboard"
       transitionTypes={["nav-forward"]}
-      className={`standing-chip inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background/70 px-2 py-1 text-[11px] font-medium tabular-nums transition-colors hover:border-accent/50 hover:text-accent sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs ${
-        cheer === "big"
+      className={`standing-chip relative inline-flex shrink-0 items-center gap-1.5 overflow-visible rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] font-medium tabular-nums transition-colors hover:border-accent/50 hover:text-accent sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs ${
+        pulse === "big-gain"
           ? "standing-cheer-big"
-          : cheer === "small"
-            ? "standing-cheer-small"
-            : ""
+          : pulse === "gain"
+            ? "standing-cheer-gain"
+            : pulse === "loss"
+              ? "standing-cheer-loss"
+              : ""
       } ${projected ? "border-accent/40" : ""}`}
       aria-label={
         projected
@@ -91,15 +100,24 @@ function StandingChip({
         </span>
       ) : null}
       <span className="text-accent">#{standing.rank}</span>
-      <span
-        className={`text-muted ${cheer ? "inline" : "hidden sm:inline md:hidden xl:inline"}`}
-      >
+      <span className="text-muted" aria-hidden>
         ·
       </span>
-      <span className={cheer ? "inline" : "hidden sm:inline md:hidden xl:inline"}>
+      <span>
         {standing.totalPoints}
         <span className="ml-0.5 text-muted">{t("nav.pts")}</span>
       </span>
+      {delta != null && delta !== 0 ? (
+        <span
+          key={`${standing.totalPoints}-${delta}`}
+          className={`standing-delta pointer-events-none absolute -top-0.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold tabular-nums sm:text-xs ${
+            delta > 0 ? "standing-delta-gain" : "standing-delta-loss"
+          }`}
+          aria-hidden
+        >
+          {delta > 0 ? `+${delta}` : String(delta)}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -170,7 +188,7 @@ export function AppShell({
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden overscroll-none bg-background pt-[env(safe-area-inset-top)]">
       <header
-        className="z-40 shrink-0 border-b border-border bg-surface/90 backdrop-blur-md"
+        className="z-40 shrink-0 overflow-visible border-b border-border bg-surface/90 backdrop-blur-md"
         style={{ viewTransitionName: "site-header" }}
       >
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 md:gap-3 md:px-6">
