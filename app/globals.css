@@ -400,7 +400,7 @@ body {
 }
 
 .standing-delta-loss {
-  top: 100%;
+  top: 55%;
   color: #ff5c7a;
   animation: standing-delta-drop 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   filter: drop-shadow(0 0 6px color-mix(in srgb, #ff5c7a 55%, transparent));
@@ -428,19 +428,19 @@ body {
 @keyframes standing-delta-drop {
   0% {
     opacity: 0;
-    transform: translate(-50%, 10px) scale(0.7);
+    transform: translate(-50%, 0) scale(0.7);
   }
   18% {
     opacity: 1;
-    transform: translate(-50%, 14px) scale(1.1);
+    transform: translate(-50%, 4px) scale(1.1);
   }
   55% {
     opacity: 1;
-    transform: translate(-50%, 20px) scale(1);
+    transform: translate(-50%, 8px) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, 28px) scale(0.95);
+    transform: translate(-50%, 14px) scale(0.95);
   }
 }
 
