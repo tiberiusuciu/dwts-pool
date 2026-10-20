@@ -22,6 +22,7 @@ export type UserPredictionState = {
   seasonWinnerCoupleId: string | null;
   seasonWinnerFromEpisodeNumber: number | null;
   eliminatedCoupleId: string | null;
+  predictsNoElimination: boolean;
   /** coupleId → rank (1 = highest expected score) */
   ranks: Record<string, number>;
 };
@@ -150,6 +151,7 @@ export async function getUserPredictions(
   let seasonWinnerCoupleId: string | null = null;
   let seasonWinnerFromEpisodeNumber: number | null = null;
   let eliminatedCoupleId: string | null = null;
+  let predictsNoElimination = false;
 
   for (const row of rows) {
     if (row.kind === PredictionKind.SEASON_WINNER) {
@@ -157,6 +159,7 @@ export async function getUserPredictions(
       seasonWinnerFromEpisodeNumber = row.seasonWinnerFromEpisodeNumber;
     } else if (row.kind === PredictionKind.WEEKLY_ELIMINATION) {
       eliminatedCoupleId = row.predictedEliminatedCoupleId;
+      predictsNoElimination = row.predictsNoElimination;
     } else if (
       row.kind === PredictionKind.WEEKLY_RANK &&
       row.coupleId &&
@@ -170,6 +173,7 @@ export async function getUserPredictions(
     seasonWinnerCoupleId,
     seasonWinnerFromEpisodeNumber,
     eliminatedCoupleId,
+    predictsNoElimination,
     ranks,
   };
 }

@@ -63,6 +63,9 @@ export default async function HomePage() {
           couples={couples}
           initialOrder={rankOrder}
           initialEliminatedCoupleId={predictions?.eliminatedCoupleId ?? null}
+          initialPredictsNoElimination={
+            predictions?.predictsNoElimination ?? false
+          }
         />
       ) : null}
 

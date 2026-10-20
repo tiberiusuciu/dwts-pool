@@ -22,6 +22,8 @@ export type EpisodeScoreBreakdown = {
   total: number;
   eliminatedCoupleId: string | null;
   predictedElimName: string | null;
+  predictedNoElimination: boolean;
+  actualNoElimination: boolean;
   actualEliminatedIds: string[];
   actualElimNames: string[];
   ranks: {
@@ -57,7 +59,10 @@ function buildActualRanks(
 }
 
 export function scoreEpisodeFromData(input: {
-  episode: Pick<Episode, "id" | "episodeNumber" | "title" | "isFinale">;
+  episode: Pick<
+    Episode,
+    "id" | "episodeNumber" | "title" | "isFinale" | "noElimination"
+  >;
   results: Pick<ActualResult, "coupleId" | "judgeScore" | "isEliminated">[];
   predictions: Pick<
     Prediction,
@@ -65,6 +70,7 @@ export function scoreEpisodeFromData(input: {
     | "seasonWinnerCoupleId"
     | "seasonWinnerFromEpisodeNumber"
     | "predictedEliminatedCoupleId"
+    | "predictsNoElimination"
     | "coupleId"
     | "predictedRank"
   >[];
@@ -84,8 +90,13 @@ export function scoreEpisodeFromData(input: {
     .filter((r) => r.isEliminated)
     .map((r) => r.coupleId);
 
+  const predictedNoElimination = elimPred?.predictsNoElimination ?? false;
+  const actualNoElimination =
+    episode.noElimination && actualEliminatedIds.length === 0;
   const elimPts =
-    eliminatedCoupleId && actualEliminatedIds.includes(eliminatedCoupleId)
+    (eliminatedCoupleId &&
+      actualEliminatedIds.includes(eliminatedCoupleId)) ||
+    (predictedNoElimination && actualNoElimination)
       ? ruleset.elimPoints
       : 0;
 
@@ -175,6 +186,8 @@ export function scoreEpisodeFromData(input: {
     predictedElimName: eliminatedCoupleId
       ? (coupleName.get(eliminatedCoupleId) ?? "Unknown")
       : null,
+    predictedNoElimination,
+    actualNoElimination,
     actualEliminatedIds,
     actualElimNames: actualEliminatedIds.map(
       (id) => coupleName.get(id) ?? "Unknown",

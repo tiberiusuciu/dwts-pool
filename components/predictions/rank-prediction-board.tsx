@@ -35,6 +35,7 @@ export function RankPredictionBoard({
   couples,
   initialOrder,
   initialEliminatedCoupleId,
+  initialPredictsNoElimination = false,
 }: {
   episodeId: string;
   episodeTitle: string;
@@ -48,6 +49,7 @@ export function RankPredictionBoard({
   /** couple ids highest → lowest */
   initialOrder: string[];
   initialEliminatedCoupleId: string | null;
+  initialPredictsNoElimination?: boolean;
 }) {
   const t = useT();
   const router = useRouter();
@@ -74,12 +76,18 @@ export function RankPredictionBoard({
 
   const [order, setOrder] = useState(startingOrder);
   const [eliminatedCoupleId, setEliminatedCoupleId] = useState<string | null>(
-    initialEliminatedCoupleId,
+    initialPredictsNoElimination ? null : initialEliminatedCoupleId,
+  );
+  const [noElimination, setNoElimination] = useState(
+    initialPredictsNoElimination,
   );
   const [savedOrder, setSavedOrder] = useState(startingOrder);
   const [savedEliminatedCoupleId, setSavedEliminatedCoupleId] = useState<
     string | null
-  >(initialEliminatedCoupleId);
+  >(initialPredictsNoElimination ? null : initialEliminatedCoupleId);
+  const [savedNoElimination, setSavedNoElimination] = useState(
+    initialPredictsNoElimination,
+  );
   const [rankPickerIndex, setRankPickerIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -87,27 +95,34 @@ export function RankPredictionBoard({
 
   const orderRef = useRef(order);
   const elimRef = useRef(eliminatedCoupleId);
+  const noElimRef = useRef(noElimination);
   const savedOrderRef = useRef(savedOrder);
   const savedElimRef = useRef(savedEliminatedCoupleId);
+  const savedNoElimRef = useRef(savedNoElimination);
   const lockedRef = useRef(locked);
   const saveGenRef = useRef(0);
 
   orderRef.current = order;
   elimRef.current = eliminatedCoupleId;
+  noElimRef.current = noElimination;
   savedOrderRef.current = savedOrder;
   savedElimRef.current = savedEliminatedCoupleId;
+  savedNoElimRef.current = savedNoElimination;
   lockedRef.current = locked;
 
   const dirty =
     eliminatedCoupleId !== savedEliminatedCoupleId ||
+    noElimination !== savedNoElimination ||
     !sameOrder(order, savedOrder);
 
   function persist() {
     if (lockedRef.current) return;
     const rankOrder = orderRef.current;
     const elim = elimRef.current;
+    const noElim = noElimRef.current;
     if (
       elim === savedElimRef.current &&
+      noElim === savedNoElimRef.current &&
       sameOrder(rankOrder, savedOrderRef.current)
     ) {
       return;
@@ -119,7 +134,8 @@ export function RankPredictionBoard({
       const result = await savePredictions({
         episodeId,
         rankOrder,
-        ...(elim ? { eliminatedCoupleId: elim } : {}),
+        eliminatedCoupleId: elim,
+        predictsNoElimination: noElim,
       });
       if (gen !== saveGenRef.current) return;
       if (!result.ok) {
@@ -128,8 +144,10 @@ export function RankPredictionBoard({
       }
       setSavedOrder(rankOrder);
       setSavedEliminatedCoupleId(elim);
+      setSavedNoElimination(noElim);
       savedOrderRef.current = rankOrder;
       savedElimRef.current = elim;
+      savedNoElimRef.current = noElim;
       setMessage(t("ranks.saved"));
       router.refresh();
     });
@@ -139,7 +157,7 @@ export function RankPredictionBoard({
     if (locked || !dirty) return;
     const timer = setTimeout(() => persist(), SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [order, eliminatedCoupleId, dirty, locked, episodeId]);
+  }, [order, eliminatedCoupleId, noElimination, dirty, locked, episodeId]);
 
   useEffect(() => {
     function flush() {
@@ -226,6 +244,27 @@ export function RankPredictionBoard({
         </div>
       ) : null}
 
+      <button
+        type="button"
+        aria-pressed={noElimination}
+        disabled={locked}
+        onClick={() => {
+          if (noElimination) {
+            setNoElimination(false);
+          } else {
+            setNoElimination(true);
+            setEliminatedCoupleId(null);
+          }
+        }}
+        className={`inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium transition-colors disabled:opacity-60 ${
+          noElimination
+            ? "border-accent bg-accent text-white"
+            : "border-border bg-surface text-muted hover:text-foreground"
+        }`}
+      >
+        {t("ranks.noElimination")}
+      </button>
+
       <ul
         className={`divide-y divide-border rounded-2xl border border-border bg-surface ${
           locked ? "opacity-80" : ""
@@ -288,7 +327,10 @@ export function RankPredictionBoard({
                     className="size-4 accent-[var(--accent)]"
                     checked={isElimPick}
                     disabled={locked}
-                    onChange={() => setEliminatedCoupleId(id)}
+                    onChange={() => {
+                      setEliminatedCoupleId(id);
+                      setNoElimination(false);
+                    }}
                   />
                   {t("ranks.elim")}
                 </label>

@@ -92,6 +92,7 @@ export const fr = {
     bannerLockedBody:
       "Mardi 20 h HE est passé. Le classement et le choix d'éliminé ne peuvent plus être modifiés.",
     elim: "Élim.",
+    noElimination: "Aucune élimination cette semaine",
     moveUpAria: "Monter {name}",
     moveDownAria: "Descendre {name}",
     setRankAria: "Définir le rang de {name}",
@@ -154,6 +155,7 @@ export const fr = {
     summarySeason: "Sai. {pts}",
     elimPick: "Choix d'élim. :",
     actual: "réel {names}",
+    noElimination: "Aucune élimination",
     ranksLabel: "Rangs {pts}",
     seasonLabel: "Saison {pts}",
     colCouple: "Couple",
@@ -255,6 +257,9 @@ export const fr = {
     savedCouple: "{name} enregistré",
     scoreSaved: "Note enregistrée",
     scorePending: "Pas encore noté",
+    noElimination: "Aucune élimination cette semaine",
+    markedNoElimination: "Marqué comme semaine sans élimination",
+    noEliminationCleared: "Indicateur sans élimination retiré",
     markedStatus: "Épisode marqué {status}",
     markedFinale: "Marqué comme finale de saison",
     finaleCleared: "Indicateur de finale retiré",
@@ -294,7 +299,7 @@ export const fr = {
     tieRangePill: "Rangs 1–3",
     tieHitPill: "Préd. 1, 2 ou 3 → 3 pts",
     elimBody:
-      "Bonne élimination : +25 points (épisodes 1–2 : +50). Mauvaise élim : 0.",
+      "Bonne élimination : +25 points (épisodes 1–2 : +50). Choisir « Aucune élimination » paie le même montant quand la semaine n'a aucune élimination. Mauvaise élim : 0.",
     seasonBody:
       "Le gagnant de la saison n'est compté qu'à la finale : 50 de base + 10 pour chaque semaine où vous aviez le bon couple verrouillé.",
     liveTitle: "Soir d'émission — ouvrez l'app",

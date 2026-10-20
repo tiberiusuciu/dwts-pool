@@ -14,6 +14,7 @@ export type SavePredictionsInput = {
   episodeId: string;
   seasonWinnerCoupleId?: string | null;
   eliminatedCoupleId?: string | null;
+  predictsNoElimination?: boolean;
   /** Ordered highest → lowest; rank 1 = first entry */
   rankOrder?: string[];
 };
@@ -54,17 +55,31 @@ export async function savePredictions(
   const activeIds = new Set(activeCouples.map((c) => c.id));
 
   const hasSeason = Boolean(input.seasonWinnerCoupleId);
-  const hasElim = Boolean(input.eliminatedCoupleId);
+  const elimProvided =
+    input.eliminatedCoupleId !== undefined ||
+    input.predictsNoElimination !== undefined;
+  const elimCoupleId = elimProvided
+    ? (input.eliminatedCoupleId ?? null)
+    : null;
+  const elimNone = elimProvided
+    ? (input.predictsNoElimination ?? false)
+    : false;
   const hasRanks = Boolean(input.rankOrder?.length);
 
-  if (!hasSeason && !hasElim && !hasRanks) {
+  if (!hasSeason && !elimProvided && !hasRanks) {
     return { ok: false, error: "Nothing to save" };
   }
 
   if (hasSeason && !activeIds.has(input.seasonWinnerCoupleId!)) {
     return { ok: false, error: "Pick an active couple for season winner" };
   }
-  if (hasElim && !activeIds.has(input.eliminatedCoupleId!)) {
+  if (elimCoupleId && elimNone) {
+    return {
+      ok: false,
+      error: "Pick either a couple or no elimination, not both",
+    };
+  }
+  if (elimCoupleId && !activeIds.has(elimCoupleId)) {
     return { ok: false, error: "Pick an active couple for elimination" };
   }
 
@@ -86,7 +101,9 @@ export async function savePredictions(
     ...(hasSeason
       ? { seasonWinnerCoupleId: input.seasonWinnerCoupleId }
       : {}),
-    ...(hasElim ? { eliminatedCoupleId: input.eliminatedCoupleId } : {}),
+    ...(elimProvided
+      ? { eliminatedCoupleId: elimCoupleId, predictsNoElimination: elimNone }
+      : {}),
     ...(hasRanks ? { rankOrder: input.rankOrder } : {}),
   };
 
@@ -112,6 +129,7 @@ export async function savePredictions(
             predictedScore: null,
             predictedRank: null,
             predictedEliminatedCoupleId: null,
+            predictsNoElimination: false,
           },
         });
       } else {
@@ -126,7 +144,7 @@ export async function savePredictions(
       }
     }
 
-    if (hasElim) {
+    if (elimProvided) {
       const existingElim = await tx.prediction.findFirst({
         where: {
           userId,
@@ -138,20 +156,22 @@ export async function savePredictions(
         await tx.prediction.update({
           where: { id: existingElim.id },
           data: {
-            predictedEliminatedCoupleId: input.eliminatedCoupleId!,
+            predictedEliminatedCoupleId: elimCoupleId,
+            predictsNoElimination: elimNone,
             seasonWinnerCoupleId: null,
             coupleId: null,
             predictedScore: null,
             predictedRank: null,
           },
         });
-      } else {
+      } else if (elimCoupleId || elimNone) {
         await tx.prediction.create({
           data: {
             userId,
             kind: PredictionKind.WEEKLY_ELIMINATION,
             episodeId: input.episodeId,
-            predictedEliminatedCoupleId: input.eliminatedCoupleId!,
+            predictedEliminatedCoupleId: elimCoupleId,
+            predictsNoElimination: elimNone,
           },
         });
       }

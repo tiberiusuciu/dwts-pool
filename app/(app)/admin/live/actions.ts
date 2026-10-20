@@ -89,6 +89,52 @@ export async function setEpisodeFinale(
   return { ok: true };
 }
 
+export async function setEpisodeNoElimination(
+  episodeId: string,
+  noElimination: boolean,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) {
+    return { ok: false, error: "Admin only" };
+  }
+
+  const episode = await prisma.episode.findUnique({
+    where: { id: episodeId },
+    select: { status: true },
+  });
+  if (!episode) {
+    return { ok: false, error: "Episode not found" };
+  }
+
+  if (noElimination) {
+    const eliminatedCount = await prisma.actualResult.count({
+      where: { episodeId, isEliminated: true },
+    });
+    if (eliminatedCount > 0) {
+      return {
+        ok: false,
+        error: "Un-eliminate every couple before marking no elimination",
+      };
+    }
+  }
+
+  await prisma.episode.update({
+    where: { id: episodeId },
+    data: { noElimination },
+  });
+
+  await recalculateAllPoints();
+  if (episode.status === EpisodeStatus.LIVE) {
+    await captureEpisodeRaceSnapshot(episodeId);
+  }
+  publishLeaderboardUpdate();
+  revalidatePath("/leaderboard");
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/live");
+  await broadcastEpisode(episodeId);
+  return { ok: true };
+}
+
 export async function upsertLiveResult(input: {
   episodeId: string;
   coupleId: string;

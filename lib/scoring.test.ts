@@ -10,6 +10,7 @@ function pred(partial: Partial<Pred> & Pick<Pred, "kind">): Pred {
     seasonWinnerCoupleId: null,
     seasonWinnerFromEpisodeNumber: null,
     predictedEliminatedCoupleId: null,
+    predictsNoElimination: false,
     coupleId: null,
     predictedRank: null,
     ...partial,
@@ -31,6 +32,7 @@ describe("scoreEpisodeFromData rank ranges", () => {
         episodeNumber: 3,
         title: "Week 3",
         isFinale: false,
+        noElimination: false,
       },
       results: [
         { coupleId: "c1", judgeScore: 30, isEliminated: false },
@@ -71,6 +73,7 @@ describe("scoreEpisodeFromData rank ranges", () => {
         episodeNumber: 1,
         title: "Week 1",
         isFinale: false,
+        noElimination: false,
       },
       results: [
         { coupleId: "c1", judgeScore: 30, isEliminated: false },
@@ -98,5 +101,110 @@ describe("scoreEpisodeFromData rank ranges", () => {
     assert.equal(amy.actualRankMax, 1);
     assert.equal(zoe.actualRank, 2);
     assert.equal(breakdown.elimPts, 50);
+  });
+});
+
+describe("scoreEpisodeFromData no-elimination pick", () => {
+  const couples = [
+    { id: "c1", celebrityName: "Zoe" },
+    { id: "c2", celebrityName: "Amy" },
+  ];
+  const scoredNoElim = [
+    { coupleId: "c1", judgeScore: 30, isEliminated: false },
+    { coupleId: "c2", judgeScore: 24, isEliminated: false },
+  ];
+  const nonePick = [
+    pred({ kind: "WEEKLY_ELIMINATION", predictsNoElimination: true }),
+  ];
+
+  it("pays ep3 elim points when admin flags a no-elimination week", () => {
+    const breakdown = scoreEpisodeFromData({
+      episode: {
+        id: "ep3",
+        episodeNumber: 3,
+        title: "Week 3",
+        isFinale: false,
+        noElimination: true,
+      },
+      results: scoredNoElim,
+      predictions: nonePick,
+      couples,
+      activeWinnerCoupleId: null,
+    });
+    assert.equal(breakdown.elimPts, 25);
+    assert.equal(breakdown.predictedNoElimination, true);
+    assert.equal(breakdown.actualNoElimination, true);
+  });
+
+  it("pays legacy ep1 elim points for a correct none pick", () => {
+    const breakdown = scoreEpisodeFromData({
+      episode: {
+        id: "ep1",
+        episodeNumber: 1,
+        title: "Week 1",
+        isFinale: false,
+        noElimination: true,
+      },
+      results: scoredNoElim,
+      predictions: nonePick,
+      couples,
+      activeWinnerCoupleId: null,
+    });
+    assert.equal(breakdown.elimPts, 50);
+  });
+
+  it("pays 0 without the admin flag, even if nobody was eliminated", () => {
+    const breakdown = scoreEpisodeFromData({
+      episode: {
+        id: "ep3",
+        episodeNumber: 3,
+        title: "Week 3",
+        isFinale: false,
+        noElimination: false,
+      },
+      results: scoredNoElim,
+      predictions: nonePick,
+      couples,
+      activeWinnerCoupleId: null,
+    });
+    assert.equal(breakdown.elimPts, 0);
+    assert.equal(breakdown.actualNoElimination, false);
+  });
+
+  it("pays 0 to the none pick when a couple was eliminated; couple pick still hits", () => {
+    const results = [
+      { coupleId: "c1", judgeScore: 30, isEliminated: false },
+      { coupleId: "c2", judgeScore: 24, isEliminated: true },
+    ];
+    const episode = {
+      id: "ep3",
+      episodeNumber: 3,
+      title: "Week 3",
+      isFinale: false,
+      noElimination: true,
+    };
+    const noneBreakdown = scoreEpisodeFromData({
+      episode,
+      results,
+      predictions: nonePick,
+      couples,
+      activeWinnerCoupleId: null,
+    });
+    assert.equal(noneBreakdown.elimPts, 0);
+    assert.equal(noneBreakdown.actualNoElimination, false);
+
+    const coupleBreakdown = scoreEpisodeFromData({
+      episode,
+      results,
+      predictions: [
+        pred({
+          kind: "WEEKLY_ELIMINATION",
+          predictedEliminatedCoupleId: "c2",
+        }),
+      ],
+      couples,
+      activeWinnerCoupleId: null,
+    });
+    assert.equal(coupleBreakdown.elimPts, 25);
   });
 });

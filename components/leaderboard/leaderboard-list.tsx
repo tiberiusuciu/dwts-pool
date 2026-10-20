@@ -94,13 +94,23 @@ function EpisodeBreakdown({ ep }: { ep: EpisodeScoreBreakdown }) {
                     : "font-medium text-foreground"
                 }
               >
-                {ep.predictedElimName ?? "—"}
+                {ep.predictedElimName ??
+                (ep.predictedNoElimination
+                  ? t("leaderboard.noElimination")
+                  : "—")}
               </span>
               {ep.actualElimNames.length > 0 ? (
                 <>
                   {" "}
                   · {t("leaderboard.actual", {
                     names: ep.actualElimNames.join(", "),
+                  })}
+                </>
+              ) : ep.actualNoElimination ? (
+                <>
+                  {" "}
+                  · {t("leaderboard.actual", {
+                    names: t("leaderboard.noElimination"),
                   })}
                 </>
               ) : null}

@@ -87,6 +87,7 @@ export const en = {
     bannerLockedBody:
       "Tue 8pm ET has passed. Ranking and elimination picks can no longer be changed.",
     elim: "Elim",
+    noElimination: "No elimination this week",
     moveUpAria: "Move {name} up",
     moveDownAria: "Move {name} down",
     setRankAria: "Set rank for {name}",
@@ -147,6 +148,7 @@ export const en = {
     summarySeason: "Sea {pts}",
     elimPick: "Elim pick:",
     actual: "actual {names}",
+    noElimination: "No elimination",
     ranksLabel: "Ranks {pts}",
     seasonLabel: "Season {pts}",
     colCouple: "Couple",
@@ -247,6 +249,9 @@ export const en = {
     savedCouple: "Saved {name}",
     scoreSaved: "Score locked in",
     scorePending: "Not scored yet",
+    noElimination: "No elimination this week",
+    markedNoElimination: "Marked as a no-elimination week",
+    noEliminationCleared: "No-elimination flag cleared",
     markedStatus: "Episode marked {status}",
     markedFinale: "Marked as season finale",
     finaleCleared: "Finale flag cleared",
@@ -286,7 +291,7 @@ export const en = {
     tieRangePill: "Ranks 1–3",
     tieHitPill: "Pred 1, 2, or 3 → 3 pts",
     elimBody:
-      "Correct elimination pick: +25 points (episodes 1–2 used +50). Wrong elim: 0.",
+      "Correct elimination pick: +25 points (episodes 1–2 used +50). Picking “No elimination” pays the same when the week has no elimination. Wrong elim: 0.",
     seasonBody:
       "Season winner is scored only on the finale: 50 base + 10 for each week you held the correct couple locked in.",
     liveTitle: "Show night — go live with the app",

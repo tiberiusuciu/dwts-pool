@@ -8,6 +8,7 @@ import {
   calculateAndBroadcastPoints,
   clearEpisodeResults,
   setEpisodeFinale,
+  setEpisodeNoElimination,
   setEpisodeStatus,
   upsertLiveResult,
 } from "@/app/(app)/admin/live/actions";
@@ -36,6 +37,7 @@ type EpisodeOption = {
   title: string;
   status: EpisodeStatusValue;
   isFinale: boolean;
+  noElimination: boolean;
 };
 
 export function AdminLiveForm({
@@ -58,6 +60,9 @@ export function AdminLiveForm({
 
   const episode = episodes.find((e) => e.id === episodeId);
   const [isFinale, setIsFinale] = useState(episode?.isFinale ?? false);
+  const [noElimination, setNoElimination] = useState(
+    episode?.noElimination ?? false,
+  );
   const hasSavedResults = useMemo(
     () => couples.some((c) => c.judgeScore != null || c.isEliminated),
     [couples],
@@ -67,6 +72,7 @@ export function AdminLiveForm({
     setEpisodeId(nextId);
     const next = episodes.find((e) => e.id === nextId);
     setIsFinale(next?.isFinale ?? false);
+    setNoElimination(next?.noElimination ?? false);
     router.push(`/admin?episodeId=${nextId}`);
   }
 
@@ -144,6 +150,26 @@ export function AdminLiveForm({
         return;
       }
       setMessage(next ? t("admin.markedFinale") : t("admin.finaleCleared"));
+      router.refresh();
+    });
+  }
+
+  function toggleNoElimination(next: boolean) {
+    setNoElimination(next);
+    setError(null);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await setEpisodeNoElimination(episodeId, next);
+      if (!result.ok) {
+        setError(result.error);
+        setNoElimination(!next);
+        return;
+      }
+      setMessage(
+        next
+          ? t("admin.markedNoElimination")
+          : t("admin.noEliminationCleared"),
+      );
       router.refresh();
     });
   }
@@ -272,6 +298,16 @@ export function AdminLiveForm({
                 className="size-4 accent-[var(--accent)]"
               />
               {t("admin.seasonFinale")}
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={noElimination}
+                disabled={pending}
+                onChange={(e) => toggleNoElimination(e.target.checked)}
+                className="size-4 accent-[var(--accent)]"
+              />
+              {t("admin.noElimination")}
             </label>
             <button
               type="button"

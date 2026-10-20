@@ -34,6 +34,7 @@ export default async function AdminPage({
         title: true,
         status: true,
         isFinale: true,
+        noElimination: true,
       },
     }),
     getPrizePoolCents(),

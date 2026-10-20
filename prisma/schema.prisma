@@ -121,6 +121,7 @@ model Episode {
   airDate       DateTime
   status        EpisodeStatus @default(UPCOMING)
   isFinale      Boolean       @default(false)
+  noElimination Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -171,6 +172,7 @@ model Prediction {
   predictedScore              Float?
   predictedRank               Int?
   predictedEliminatedCoupleId String?
+  predictsNoElimination       Boolean        @default(false)
 
   user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   seasonWinnerCouple        Couple?  @relation("SeasonWinnerCouple", fields: [seasonWinnerCoupleId], references: [id])
