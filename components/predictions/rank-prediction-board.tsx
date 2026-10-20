@@ -140,6 +140,9 @@ export function RankPredictionBoard({
       if (gen !== saveGenRef.current) return;
       if (!result.ok) {
         setError(result.error);
+        // Episode may have gone LIVE/PAST since this page rendered — pull
+        // fresh server state so the board locks or switches episode.
+        router.refresh();
         return;
       }
       setSavedOrder(rankOrder);
