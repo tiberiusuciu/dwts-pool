@@ -66,7 +66,7 @@ export async function recalculateAllPoints(): Promise<
     prisma.episode.findMany({
       where: {
         status: { in: [...SCORABLE_EPISODE_STATUSES] },
-        actualResults: { some: {} },
+        OR: [{ actualResults: { some: {} } }, { noElimination: true }],
       },
       include: { actualResults: true },
       orderBy: { episodeNumber: "asc" },
@@ -188,7 +188,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     prisma.episode.findMany({
       where: {
         status: { in: [...SCORABLE_EPISODE_STATUSES] },
-        actualResults: { some: {} },
+        OR: [{ actualResults: { some: {} } }, { noElimination: true }],
       },
       include: { actualResults: true },
       orderBy: { episodeNumber: "asc" },

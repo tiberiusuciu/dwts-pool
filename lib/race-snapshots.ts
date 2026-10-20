@@ -198,7 +198,12 @@ export async function getEpisodeRaceSeries(
 
   // LIVE: always (baseline at 0). PAST: mid-night snapshots, else finals-only.
   if (!isLive && !isPast) return null;
-  if (isPast && scoredSnapshots.length === 0 && episode.actualResults.length === 0) {
+  if (
+    isPast &&
+    scoredSnapshots.length === 0 &&
+    episode.actualResults.length === 0 &&
+    !episode.noElimination
+  ) {
     return null;
   }
 
@@ -279,7 +284,7 @@ export async function listPastEpisodeRaces(): Promise<RaceChartData[]> {
   const past = await prisma.episode.findMany({
     where: {
       status: EpisodeStatus.PAST,
-      actualResults: { some: {} },
+      OR: [{ actualResults: { some: {} } }, { noElimination: true }],
     },
     orderBy: { episodeNumber: "desc" },
     select: { id: true },
@@ -302,7 +307,7 @@ export async function getSeasonCumulativeSeries(): Promise<RaceChartData> {
         OR: [
           {
             status: EpisodeStatus.PAST,
-            actualResults: { some: {} },
+            OR: [{ actualResults: { some: {} } }, { noElimination: true }],
           },
           { status: EpisodeStatus.LIVE },
         ],
