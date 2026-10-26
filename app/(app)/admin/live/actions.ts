@@ -1,6 +1,11 @@
 "use server";
 
-import { CoupleStatus, EpisodeStatus, Role } from "@prisma/client";
+import {
+  CoupleStatus,
+  EpisodeStatus,
+  PredictionKind,
+  Role,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
@@ -110,7 +115,7 @@ export async function setExpectedEliminationCount(
 
   const episode = await prisma.episode.findUnique({
     where: { id: episodeId },
-    select: { status: true },
+    select: { status: true, expectedEliminationCount: true },
   });
   if (!episode) {
     return { ok: false, error: "Episode not found" };
@@ -128,12 +133,53 @@ export async function setExpectedEliminationCount(
     }
   }
 
-  await prisma.episode.update({
-    where: { id: episodeId },
-    data: {
-      expectedEliminationCount: count,
-      noElimination: count === 0,
-    },
+  const countChanged = episode.expectedEliminationCount !== count;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.episode.update({
+      where: { id: episodeId },
+      data: {
+        expectedEliminationCount: count,
+        noElimination: count === 0,
+      },
+    });
+
+    // Reset elim picks when the week’s elim rules change (update in place; never delete).
+    if (countChanged) {
+      const elimPreds = await tx.prediction.findMany({
+        where: {
+          episodeId,
+          kind: PredictionKind.WEEKLY_ELIMINATION,
+        },
+        select: { id: true, userId: true },
+      });
+      if (elimPreds.length > 0) {
+        await tx.prediction.updateMany({
+          where: {
+            episodeId,
+            kind: PredictionKind.WEEKLY_ELIMINATION,
+          },
+          data: {
+            predictedEliminatedCoupleId: null,
+            predictedEliminatedCoupleIds: [],
+            predictsNoElimination: false,
+          },
+        });
+        await tx.predictionEvent.createMany({
+          data: elimPreds.map((p) => ({
+            userId: p.userId,
+            episodeId,
+            payload: {
+              eliminatedCoupleId: null,
+              eliminatedCoupleIds: [],
+              predictsNoElimination: false,
+              reason: "admin_expected_elimination_count_changed",
+              expectedEliminationCount: count,
+            },
+          })),
+        });
+      }
+    }
   });
 
   await recalculateAllPoints();

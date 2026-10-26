@@ -54,7 +54,7 @@ export default async function HomePage() {
 
       {featured && userId ? (
         <RankPredictionBoard
-          key={featured.id}
+          key={`${featured.id}-${featured.expectedEliminationCount}`}
           episodeId={featured.id}
           episodeTitle={featured.title}
           episodeNumber={featured.episodeNumber}
