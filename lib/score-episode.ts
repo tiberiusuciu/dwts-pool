@@ -60,7 +60,7 @@ function resolvePredictedElimIds(
   return [];
 }
 
-/** Shared week pot: perfect set = full elimPoints; otherwise floor(pot * hits / N). */
+/** Full elimPoints per correctly predicted elimination (multi-elim weeks stack). */
 export function scoreEliminationPoints(input: {
   elimPoints: number;
   expectedEliminationCount: number;
@@ -84,9 +84,7 @@ export function scoreEliminationPoints(input: {
 
   const actualSet = new Set(actualEliminatedIds);
   const hits = predictedIds.filter((id) => actualSet.has(id)).length;
-  if (hits === 0) return 0;
-  if (hits >= n) return elimPoints;
-  return Math.floor((elimPoints * hits) / n);
+  return hits * elimPoints;
 }
 
 /** Legacy unique ranks: score desc, then celebrity name for ties. */

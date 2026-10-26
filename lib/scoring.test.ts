@@ -222,8 +222,8 @@ describe("scoreEpisodeFromData no-elimination pick", () => {
   });
 });
 
-describe("scoreEliminationPoints multi-elim pot split", () => {
-  it("awards full pot for perfect double elim", () => {
+describe("scoreEliminationPoints multi-elim per hit", () => {
+  it("stacks full elim points for each correct pick", () => {
     assert.equal(
       scoreEliminationPoints({
         elimPoints: 25,
@@ -233,11 +233,11 @@ describe("scoreEliminationPoints multi-elim pot split", () => {
         predictedNoElimination: false,
         actualNoElimination: false,
       }),
-      25,
+      50,
     );
   });
 
-  it("awards floor share for one of two hits", () => {
+  it("awards one stack for one of two hits", () => {
     assert.equal(
       scoreEliminationPoints({
         elimPoints: 25,
@@ -247,7 +247,7 @@ describe("scoreEliminationPoints multi-elim pot split", () => {
         predictedNoElimination: false,
         actualNoElimination: false,
       }),
-      12,
+      25,
     );
   });
 
@@ -265,7 +265,7 @@ describe("scoreEliminationPoints multi-elim pot split", () => {
     );
   });
 
-  it("keeps single-elim full pot", () => {
+  it("keeps single-elim full points", () => {
     assert.equal(
       scoreEliminationPoints({
         elimPoints: 50,
@@ -288,7 +288,7 @@ describe("scoreEpisodeFromData double elimination", () => {
     { id: "c4", celebrityName: "Cy" },
   ];
 
-  it("splits pot and lists both predicted names", () => {
+  it("stacks points and lists both predicted names", () => {
     const breakdown = scoreEpisodeFromData({
       episode: {
         id: "ep4",
@@ -315,13 +315,13 @@ describe("scoreEpisodeFromData double elimination", () => {
       activeWinnerCoupleId: null,
     });
 
-    assert.equal(breakdown.elimPts, 12);
+    assert.equal(breakdown.elimPts, 25);
     assert.deepEqual(breakdown.eliminatedCoupleIds, ["c2", "c4"]);
     assert.equal(breakdown.predictedElimName, "Amy, Cy");
     assert.deepEqual(breakdown.actualEliminatedIds.sort(), ["c2", "c3"]);
   });
 
-  it("pays full pot when both picks match", () => {
+  it("pays stacked points when both picks match", () => {
     const breakdown = scoreEpisodeFromData({
       episode: {
         id: "ep4",
@@ -347,6 +347,6 @@ describe("scoreEpisodeFromData double elimination", () => {
       activeWinnerCoupleId: null,
     });
 
-    assert.equal(breakdown.elimPts, 25);
+    assert.equal(breakdown.elimPts, 50);
   });
 });

@@ -299,7 +299,7 @@ export const en = {
     tieRangePill: "Ranks 1–3",
     tieHitPill: "Pred 1, 2, or 3 → 3 pts",
     elimBody:
-      "Elimination is a shared week pot (+25; episodes 1–2 used +50). Nail every elim for the full pot; each correct pick on a multi-elim week earns a share. “No elimination” pays the full pot when the week has none. Wrong elim: 0.",
+      "Correct elimination pick: +25 points each (episodes 1–2 used +50). On a multi-elim week, each correct pick pays separately. Picking “No elimination” pays the same when the week has no elimination. Wrong elim: 0.",
     seasonBody:
       "Season winner is scored only on the finale: 50 base + 10 for each week you held the correct couple locked in.",
     liveTitle: "Show night — go live with the app",

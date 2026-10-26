@@ -307,7 +307,7 @@ export const fr = {
     tieRangePill: "Rangs 1–3",
     tieHitPill: "Préd. 1, 2 ou 3 → 3 pts",
     elimBody:
-      "L'élimination est un pot partagé pour la semaine (+25 ; épisodes 1–2 : +50). Toutes les élims justes = pot entier ; chaque bon choix sur une semaine multi-élim rapporte une part. « Aucune élimination » paie le pot entier s'il n'y en a pas. Mauvaise élim : 0.",
+      "Bonne élimination : +25 points chacune (épisodes 1–2 : +50). Sur une semaine multi-élim, chaque bon choix paie séparément. Choisir « Aucune élimination » paie le même montant quand la semaine n'a aucune élimination. Mauvaise élim : 0.",
     seasonBody:
       "Le gagnant de la saison n'est compté qu'à la finale : 50 de base + 10 pour chaque semaine où vous aviez le bon couple verrouillé.",
     liveTitle: "Soir d'émission — ouvrez l'app",
