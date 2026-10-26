@@ -63,7 +63,11 @@ export default async function HomePage() {
           episodeStatus={featured.status}
           couples={couples}
           initialOrder={rankOrder}
+          expectedEliminationCount={featured.expectedEliminationCount}
           initialEliminatedCoupleId={predictions?.eliminatedCoupleId ?? null}
+          initialEliminatedCoupleIds={
+            predictions?.eliminatedCoupleIds ?? []
+          }
           initialPredictsNoElimination={
             predictions?.predictsNoElimination ?? false
           }

@@ -8,7 +8,7 @@ import {
   calculateAndBroadcastPoints,
   clearEpisodeResults,
   setEpisodeFinale,
-  setEpisodeNoElimination,
+  setExpectedEliminationCount,
   setEpisodeStatus,
   upsertLiveResult,
 } from "@/app/(app)/admin/live/actions";
@@ -38,6 +38,7 @@ type EpisodeOption = {
   status: EpisodeStatusValue;
   isFinale: boolean;
   noElimination: boolean;
+  expectedEliminationCount: number;
 };
 
 export function AdminLiveForm({
@@ -60,19 +61,27 @@ export function AdminLiveForm({
 
   const episode = episodes.find((e) => e.id === episodeId);
   const [isFinale, setIsFinale] = useState(episode?.isFinale ?? false);
-  const [noElimination, setNoElimination] = useState(
-    episode?.noElimination ?? false,
+  const [elimCount, setElimCount] = useState(
+    episode?.expectedEliminationCount ?? (episode?.noElimination ? 0 : 1),
   );
+  const [elimCountDraft, setElimCountDraft] = useState(String(elimCount));
   const hasSavedResults = useMemo(
     () => couples.some((c) => c.judgeScore != null || c.isEliminated),
     [couples],
+  );
+  const markedElimCount = useMemo(
+    () => rows.filter((r) => r.isEliminated).length,
+    [rows],
   );
 
   function onEpisodeChange(nextId: string) {
     setEpisodeId(nextId);
     const next = episodes.find((e) => e.id === nextId);
     setIsFinale(next?.isFinale ?? false);
-    setNoElimination(next?.noElimination ?? false);
+    const nextCount =
+      next?.expectedEliminationCount ?? (next?.noElimination ? 0 : 1);
+    setElimCount(nextCount);
+    setElimCountDraft(String(nextCount));
     router.push(`/admin?episodeId=${nextId}`);
   }
 
@@ -154,21 +163,26 @@ export function AdminLiveForm({
     });
   }
 
-  function toggleNoElimination(next: boolean) {
-    setNoElimination(next);
+  function saveElimCount(next: number) {
+    const clamped = Math.max(0, Math.min(20, Math.trunc(next)));
+    setElimCountDraft(String(clamped));
+    if (clamped === elimCount) return;
+    const prev = elimCount;
+    setElimCount(clamped);
     setError(null);
     setMessage(null);
     startTransition(async () => {
-      const result = await setEpisodeNoElimination(episodeId, next);
+      const result = await setExpectedEliminationCount(episodeId, clamped);
       if (!result.ok) {
         setError(result.error);
-        setNoElimination(!next);
+        setElimCount(prev);
+        setElimCountDraft(String(prev));
         return;
       }
       setMessage(
-        next
+        clamped === 0
           ? t("admin.markedNoElimination")
-          : t("admin.noEliminationCleared"),
+          : t("admin.elimCountSaved", { count: clamped }),
       );
       router.refresh();
     });
@@ -300,14 +314,29 @@ export function AdminLiveForm({
               {t("admin.seasonFinale")}
             </label>
             <label className="flex items-center gap-2 text-sm font-medium">
+              <span>{t("admin.expectedEliminations")}</span>
               <input
-                type="checkbox"
-                checked={noElimination}
+                type="number"
+                min={0}
+                max={Math.max(rows.length, 1)}
+                value={elimCountDraft}
                 disabled={pending}
-                onChange={(e) => toggleNoElimination(e.target.checked)}
-                className="size-4 accent-[var(--accent)]"
+                onChange={(e) => setElimCountDraft(e.target.value)}
+                onBlur={() => {
+                  const raw = Number(elimCountDraft);
+                  if (!Number.isFinite(raw)) {
+                    setElimCountDraft(String(elimCount));
+                    return;
+                  }
+                  saveElimCount(raw);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                className="h-9 w-16 rounded-xl border border-border bg-surface px-2 text-sm tabular-nums"
               />
-              {t("admin.noElimination")}
             </label>
             <button
               type="button"
@@ -319,6 +348,15 @@ export function AdminLiveForm({
             </button>
           </div>
         </div>
+
+        {elimCount > 0 && markedElimCount !== elimCount ? (
+          <p className="text-xs text-muted" role="status">
+            {t("admin.elimCountMismatch", {
+              marked: markedElimCount,
+              expected: elimCount,
+            })}
+          </p>
+        ) : null}
 
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
           {rows.map((row) => (

@@ -20,8 +20,11 @@ export type EpisodeScoreBreakdown = {
   rankPts: number;
   seasonPts: number;
   total: number;
+  /** First predicted elim (legacy); prefer eliminatedCoupleIds. */
   eliminatedCoupleId: string | null;
+  eliminatedCoupleIds: string[];
   predictedElimName: string | null;
+  predictedElimNames: string[];
   predictedNoElimination: boolean;
   actualNoElimination: boolean;
   actualEliminatedIds: string[];
@@ -37,6 +40,54 @@ export type EpisodeScoreBreakdown = {
     points: number;
   }[];
 };
+
+function resolvePredictedElimIds(
+  elimPred:
+    | {
+        predictedEliminatedCoupleId?: string | null;
+        predictedEliminatedCoupleIds?: string[];
+        predictsNoElimination?: boolean;
+      }
+    | undefined,
+): string[] {
+  if (!elimPred || elimPred.predictsNoElimination) return [];
+  if (elimPred.predictedEliminatedCoupleIds?.length) {
+    return [...new Set(elimPred.predictedEliminatedCoupleIds)];
+  }
+  if (elimPred.predictedEliminatedCoupleId) {
+    return [elimPred.predictedEliminatedCoupleId];
+  }
+  return [];
+}
+
+/** Shared week pot: perfect set = full elimPoints; otherwise floor(pot * hits / N). */
+export function scoreEliminationPoints(input: {
+  elimPoints: number;
+  expectedEliminationCount: number;
+  predictedIds: string[];
+  actualEliminatedIds: string[];
+  predictedNoElimination: boolean;
+  actualNoElimination: boolean;
+}): number {
+  const {
+    elimPoints,
+    expectedEliminationCount: n,
+    predictedIds,
+    actualEliminatedIds,
+    predictedNoElimination,
+    actualNoElimination,
+  } = input;
+
+  if (n <= 0) {
+    return predictedNoElimination && actualNoElimination ? elimPoints : 0;
+  }
+
+  const actualSet = new Set(actualEliminatedIds);
+  const hits = predictedIds.filter((id) => actualSet.has(id)).length;
+  if (hits === 0) return 0;
+  if (hits >= n) return elimPoints;
+  return Math.floor((elimPoints * hits) / n);
+}
 
 /** Legacy unique ranks: score desc, then celebrity name for ties. */
 function buildActualRanks(
@@ -62,9 +113,11 @@ export function scoreEpisodeFromData(input: {
   episode: Pick<
     Episode,
     "id" | "episodeNumber" | "title" | "isFinale" | "noElimination"
-  >;
+  > & {
+    expectedEliminationCount?: number;
+  };
   results: Pick<ActualResult, "coupleId" | "judgeScore" | "isEliminated">[];
-  predictions: Pick<
+  predictions: (Pick<
     Prediction,
     | "kind"
     | "seasonWinnerCoupleId"
@@ -73,7 +126,9 @@ export function scoreEpisodeFromData(input: {
     | "predictsNoElimination"
     | "coupleId"
     | "predictedRank"
-  >[];
+  > & {
+    predictedEliminatedCoupleIds?: string[];
+  })[];
   couples: { id: string; celebrityName: string }[];
   activeWinnerCoupleId: string | null;
 }): EpisodeScoreBreakdown {
@@ -85,20 +140,26 @@ export function scoreEpisodeFromData(input: {
   const elimPred = predictions.find(
     (p) => p.kind === PredictionKind.WEEKLY_ELIMINATION,
   );
-  const eliminatedCoupleId = elimPred?.predictedEliminatedCoupleId ?? null;
+  const eliminatedCoupleIds = resolvePredictedElimIds(elimPred);
+  const eliminatedCoupleId = eliminatedCoupleIds[0] ?? null;
   const actualEliminatedIds = results
     .filter((r) => r.isEliminated)
     .map((r) => r.coupleId);
 
+  const expectedEliminationCount =
+    episode.expectedEliminationCount ?? (episode.noElimination ? 0 : 1);
   const predictedNoElimination = elimPred?.predictsNoElimination ?? false;
   const actualNoElimination =
-    episode.noElimination && actualEliminatedIds.length === 0;
-  const elimPts =
-    (eliminatedCoupleId &&
-      actualEliminatedIds.includes(eliminatedCoupleId)) ||
-    (predictedNoElimination && actualNoElimination)
-      ? ruleset.elimPoints
-      : 0;
+    (episode.noElimination || expectedEliminationCount === 0) &&
+    actualEliminatedIds.length === 0;
+  const elimPts = scoreEliminationPoints({
+    elimPoints: ruleset.elimPoints,
+    expectedEliminationCount,
+    predictedIds: eliminatedCoupleIds,
+    actualEliminatedIds,
+    predictedNoElimination,
+    actualNoElimination,
+  });
 
   const useRanges = ruleset.rank.type === "distance_bands";
   const actualRanges = useRanges ? buildActualRankRanges(results) : null;
@@ -174,6 +235,10 @@ export function scoreEpisodeFromData(input: {
     }
   }
 
+  const predictedElimNames = eliminatedCoupleIds.map(
+    (id) => coupleName.get(id) ?? "Unknown",
+  );
+
   return {
     episodeId: episode.id,
     episodeNumber: episode.episodeNumber,
@@ -183,9 +248,10 @@ export function scoreEpisodeFromData(input: {
     seasonPts,
     total: elimPts + rankPts + seasonPts,
     eliminatedCoupleId,
-    predictedElimName: eliminatedCoupleId
-      ? (coupleName.get(eliminatedCoupleId) ?? "Unknown")
-      : null,
+    eliminatedCoupleIds,
+    predictedElimName:
+      predictedElimNames.length > 0 ? predictedElimNames.join(", ") : null,
+    predictedElimNames,
     predictedNoElimination,
     actualNoElimination,
     actualEliminatedIds,

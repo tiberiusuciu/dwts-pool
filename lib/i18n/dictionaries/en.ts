@@ -88,6 +88,10 @@ export const en = {
       "Tue 8pm ET has passed. Ranking and elimination picks can no longer be changed.",
     elim: "Elim",
     noElimination: "No elimination this week",
+    elimHelpNone: "Mark that nobody goes home this week.",
+    elimHelpMulti: "Pick {count} couples you think will be eliminated.",
+    elimLimitToast:
+      "You can only pick {count} eliminations — deselect one to pick this couple.",
     moveUpAria: "Move {name} up",
     moveDownAria: "Move {name} down",
     setRankAria: "Set rank for {name}",
@@ -250,6 +254,10 @@ export const en = {
     scoreSaved: "Score locked in",
     scorePending: "Not scored yet",
     noElimination: "No elimination this week",
+    expectedEliminations: "Expected elims",
+    elimCountSaved: "Expected eliminations set to {count}",
+    elimCountMismatch:
+      "Marked eliminated: {marked} (expected {expected}) — save couple rows when results are in.",
     markedNoElimination: "Marked as a no-elimination week",
     noEliminationCleared: "No-elimination flag cleared",
     markedStatus: "Episode marked {status}",
@@ -291,7 +299,7 @@ export const en = {
     tieRangePill: "Ranks 1–3",
     tieHitPill: "Pred 1, 2, or 3 → 3 pts",
     elimBody:
-      "Correct elimination pick: +25 points (episodes 1–2 used +50). Picking “No elimination” pays the same when the week has no elimination. Wrong elim: 0.",
+      "Elimination is a shared week pot (+25; episodes 1–2 used +50). Nail every elim for the full pot; each correct pick on a multi-elim week earns a share. “No elimination” pays the full pot when the week has none. Wrong elim: 0.",
     seasonBody:
       "Season winner is scored only on the finale: 50 base + 10 for each week you held the correct couple locked in.",
     liveTitle: "Show night — go live with the app",

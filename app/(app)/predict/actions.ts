@@ -13,7 +13,9 @@ import { prisma } from "@/lib/prisma";
 export type SavePredictionsInput = {
   episodeId: string;
   seasonWinnerCoupleId?: string | null;
+  /** @deprecated Prefer eliminatedCoupleIds */
   eliminatedCoupleId?: string | null;
+  eliminatedCoupleIds?: string[];
   predictsNoElimination?: boolean;
   /** Ordered highest → lowest; rank 1 = first entry */
   rankOrder?: string[];
@@ -22,6 +24,16 @@ export type SavePredictionsInput = {
 export type SavePredictionsResult =
   | { ok: true }
   | { ok: false; error: string };
+
+function resolveElimIds(input: SavePredictionsInput): string[] | undefined {
+  if (input.eliminatedCoupleIds !== undefined) {
+    return [...new Set(input.eliminatedCoupleIds.filter(Boolean))];
+  }
+  if (input.eliminatedCoupleId !== undefined) {
+    return input.eliminatedCoupleId ? [input.eliminatedCoupleId] : [];
+  }
+  return undefined;
+}
 
 export async function savePredictions(
   input: SavePredictionsInput,
@@ -54,16 +66,17 @@ export async function savePredictions(
   });
   const activeIds = new Set(activeCouples.map((c) => c.id));
 
-  const hasSeason = Boolean(input.seasonWinnerCoupleId);
+  const expectedCount = episode.expectedEliminationCount;
+  const resolvedElimIds = resolveElimIds(input);
   const elimProvided =
-    input.eliminatedCoupleId !== undefined ||
+    resolvedElimIds !== undefined ||
     input.predictsNoElimination !== undefined;
-  const elimCoupleId = elimProvided
-    ? (input.eliminatedCoupleId ?? null)
-    : null;
+  const elimIds = elimProvided ? (resolvedElimIds ?? []) : [];
   const elimNone = elimProvided
     ? (input.predictsNoElimination ?? false)
     : false;
+
+  const hasSeason = Boolean(input.seasonWinnerCoupleId);
   const hasRanks = Boolean(input.rankOrder?.length);
 
   if (!hasSeason && !elimProvided && !hasRanks) {
@@ -73,14 +86,28 @@ export async function savePredictions(
   if (hasSeason && !activeIds.has(input.seasonWinnerCoupleId!)) {
     return { ok: false, error: "Pick an active couple for season winner" };
   }
-  if (elimCoupleId && elimNone) {
+  if (elimIds.length > 0 && elimNone) {
     return {
       ok: false,
-      error: "Pick either a couple or no elimination, not both",
+      error: "Pick either couples or no elimination, not both",
     };
   }
-  if (elimCoupleId && !activeIds.has(elimCoupleId)) {
-    return { ok: false, error: "Pick an active couple for elimination" };
+  if (elimNone && expectedCount !== 0) {
+    return {
+      ok: false,
+      error: "This episode expects eliminations",
+    };
+  }
+  if (elimIds.length > expectedCount) {
+    return {
+      ok: false,
+      error: `You can pick at most ${expectedCount} elimination${expectedCount === 1 ? "" : "s"}`,
+    };
+  }
+  for (const id of elimIds) {
+    if (!activeIds.has(id)) {
+      return { ok: false, error: "Pick an active couple for elimination" };
+    }
   }
 
   if (hasRanks) {
@@ -97,12 +124,17 @@ export async function savePredictions(
     }
   }
 
+  const primaryElimId = elimIds[0] ?? null;
   const eventPayload: Prisma.InputJsonObject = {
     ...(hasSeason
       ? { seasonWinnerCoupleId: input.seasonWinnerCoupleId }
       : {}),
     ...(elimProvided
-      ? { eliminatedCoupleId: elimCoupleId, predictsNoElimination: elimNone }
+      ? {
+          eliminatedCoupleId: primaryElimId,
+          eliminatedCoupleIds: elimIds,
+          predictsNoElimination: elimNone,
+        }
       : {}),
     ...(hasRanks ? { rankOrder: input.rankOrder } : {}),
   };
@@ -129,6 +161,7 @@ export async function savePredictions(
             predictedScore: null,
             predictedRank: null,
             predictedEliminatedCoupleId: null,
+            predictedEliminatedCoupleIds: [],
             predictsNoElimination: false,
           },
         });
@@ -156,7 +189,8 @@ export async function savePredictions(
         await tx.prediction.update({
           where: { id: existingElim.id },
           data: {
-            predictedEliminatedCoupleId: elimCoupleId,
+            predictedEliminatedCoupleId: primaryElimId,
+            predictedEliminatedCoupleIds: elimIds,
             predictsNoElimination: elimNone,
             seasonWinnerCoupleId: null,
             coupleId: null,
@@ -164,13 +198,14 @@ export async function savePredictions(
             predictedRank: null,
           },
         });
-      } else if (elimCoupleId || elimNone) {
+      } else if (elimIds.length > 0 || elimNone) {
         await tx.prediction.create({
           data: {
             userId,
             kind: PredictionKind.WEEKLY_ELIMINATION,
             episodeId: input.episodeId,
-            predictedEliminatedCoupleId: elimCoupleId,
+            predictedEliminatedCoupleId: primaryElimId,
+            predictedEliminatedCoupleIds: elimIds,
             predictsNoElimination: elimNone,
           },
         });

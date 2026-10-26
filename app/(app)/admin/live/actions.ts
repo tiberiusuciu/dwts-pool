@@ -93,8 +93,19 @@ export async function setEpisodeNoElimination(
   episodeId: string,
   noElimination: boolean,
 ): Promise<ActionResult> {
+  return setExpectedEliminationCount(episodeId, noElimination ? 0 : 1);
+}
+
+export async function setExpectedEliminationCount(
+  episodeId: string,
+  count: number,
+): Promise<ActionResult> {
   if (!(await requireAdmin())) {
     return { ok: false, error: "Admin only" };
+  }
+
+  if (!Number.isInteger(count) || count < 0 || count > 20) {
+    return { ok: false, error: "Elimination count must be an integer from 0 to 20" };
   }
 
   const episode = await prisma.episode.findUnique({
@@ -105,7 +116,7 @@ export async function setEpisodeNoElimination(
     return { ok: false, error: "Episode not found" };
   }
 
-  if (noElimination) {
+  if (count === 0) {
     const eliminatedCount = await prisma.actualResult.count({
       where: { episodeId, isEliminated: true },
     });
@@ -119,7 +130,10 @@ export async function setEpisodeNoElimination(
 
   await prisma.episode.update({
     where: { id: episodeId },
-    data: { noElimination },
+    data: {
+      expectedEliminationCount: count,
+      noElimination: count === 0,
+    },
   });
 
   await recalculateAllPoints();

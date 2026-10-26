@@ -115,15 +115,17 @@ model Couple {
 }
 
 model Episode {
-  id            String        @id @default(cuid())
-  episodeNumber Int           @unique
-  title         String
-  airDate       DateTime
-  status        EpisodeStatus @default(UPCOMING)
-  isFinale      Boolean       @default(false)
-  noElimination Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                        String        @id @default(cuid())
+  episodeNumber             Int           @unique
+  title                     String
+  airDate                   DateTime
+  status                    EpisodeStatus @default(UPCOMING)
+  isFinale                  Boolean       @default(false)
+  noElimination             Boolean       @default(false)
+  /** 0 = no-elim week; 1 = single pick; 2+ = multi-elim picks. Synced with noElimination. */
+  expectedEliminationCount  Int           @default(1)
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
 
   eliminatedCouples Couple[]       @relation("CoupleEliminatedEpisode")
   actualResults     ActualResult[]
@@ -172,6 +174,8 @@ model Prediction {
   predictedScore              Float?
   predictedRank               Int?
   predictedEliminatedCoupleId String?
+  /** Multi-elim picks (order-independent). Keep predictedEliminatedCoupleId as first id for legacy. */
+  predictedEliminatedCoupleIds String[]      @default([])
   predictsNoElimination       Boolean        @default(false)
 
   user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -93,6 +93,10 @@ export const fr = {
       "Mardi 20 h HE est passé. Le classement et le choix d'éliminé ne peuvent plus être modifiés.",
     elim: "Élim.",
     noElimination: "Aucune élimination cette semaine",
+    elimHelpNone: "Indiquez que personne ne rentre à la maison cette semaine.",
+    elimHelpMulti: "Choisissez {count} couples que vous pensez éliminés.",
+    elimLimitToast:
+      "Vous ne pouvez choisir que {count} éliminations — décochez-en une pour sélectionner ce couple.",
     moveUpAria: "Monter {name}",
     moveDownAria: "Descendre {name}",
     setRankAria: "Définir le rang de {name}",
@@ -258,6 +262,10 @@ export const fr = {
     scoreSaved: "Note enregistrée",
     scorePending: "Pas encore noté",
     noElimination: "Aucune élimination cette semaine",
+    expectedEliminations: "Élims prévues",
+    elimCountSaved: "Nombre d'éliminations prévu : {count}",
+    elimCountMismatch:
+      "Éliminés marqués : {marked} (prévu {expected}) — enregistrez les couples quand les résultats tombent.",
     markedNoElimination: "Marqué comme semaine sans élimination",
     noEliminationCleared: "Indicateur sans élimination retiré",
     markedStatus: "Épisode marqué {status}",
@@ -299,7 +307,7 @@ export const fr = {
     tieRangePill: "Rangs 1–3",
     tieHitPill: "Préd. 1, 2 ou 3 → 3 pts",
     elimBody:
-      "Bonne élimination : +25 points (épisodes 1–2 : +50). Choisir « Aucune élimination » paie le même montant quand la semaine n'a aucune élimination. Mauvaise élim : 0.",
+      "L'élimination est un pot partagé pour la semaine (+25 ; épisodes 1–2 : +50). Toutes les élims justes = pot entier ; chaque bon choix sur une semaine multi-élim rapporte une part. « Aucune élimination » paie le pot entier s'il n'y en a pas. Mauvaise élim : 0.",
     seasonBody:
       "Le gagnant de la saison n'est compté qu'à la finale : 50 de base + 10 pour chaque semaine où vous aviez le bon couple verrouillé.",
     liveTitle: "Soir d'émission — ouvrez l'app",

@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   startTransition,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -16,6 +17,7 @@ import {
 import { savePredictions } from "@/app/(app)/predict/actions";
 import { CoupleAvatar } from "@/components/couples/couple-avatar";
 import { useT } from "@/components/i18n/locale-provider";
+import { Toast } from "@/components/ui/toast";
 import { usePredictionLock } from "@/hooks/use-prediction-lock";
 import type { CoupleOption } from "@/lib/couple";
 
@@ -25,6 +27,12 @@ function sameOrder(a: string[], b: string[]) {
   return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
+function sameIdSet(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const set = new Set(b);
+  return a.every((id) => set.has(id));
+}
+
 export function RankPredictionBoard({
   episodeId,
   episodeTitle,
@@ -32,9 +40,11 @@ export function RankPredictionBoard({
   lockAtIso,
   forceLocked = false,
   episodeStatus = EpisodeStatus.UPCOMING,
+  expectedEliminationCount = 1,
   couples,
   initialOrder,
   initialEliminatedCoupleId,
+  initialEliminatedCoupleIds,
   initialPredictsNoElimination = false,
 }: {
   episodeId: string;
@@ -45,10 +55,13 @@ export function RankPredictionBoard({
   /** True when episode is no longer UPCOMING */
   forceLocked?: boolean;
   episodeStatus?: EpisodeStatus;
+  /** 0 = no-elim week; 1 = radio; 2+ = checkboxes */
+  expectedEliminationCount?: number;
   couples: CoupleOption[];
   /** couple ids highest → lowest */
   initialOrder: string[];
   initialEliminatedCoupleId: string | null;
+  initialEliminatedCoupleIds?: string[];
   initialPredictsNoElimination?: boolean;
 }) {
   const t = useT();
@@ -64,6 +77,10 @@ export function RankPredictionBoard({
       ? t("ranks.statusLocked")
       : t("ranks.statusUpcoming");
 
+  const elimSlots = Math.max(0, expectedEliminationCount);
+  const multiElim = elimSlots >= 2;
+  const showNoneToggle = elimSlots === 0;
+
   const byId = useMemo(() => {
     const map = new Map(couples.map((c) => [c.id, c]));
     return map;
@@ -74,44 +91,53 @@ export function RankPredictionBoard({
       ? initialOrder
       : couples.map((c) => c.id);
 
+  const startingElimIds = initialPredictsNoElimination
+    ? []
+    : initialEliminatedCoupleIds && initialEliminatedCoupleIds.length > 0
+      ? initialEliminatedCoupleIds
+      : initialEliminatedCoupleId
+        ? [initialEliminatedCoupleId]
+        : [];
+
   const [order, setOrder] = useState(startingOrder);
-  const [eliminatedCoupleId, setEliminatedCoupleId] = useState<string | null>(
-    initialPredictsNoElimination ? null : initialEliminatedCoupleId,
-  );
+  const [eliminatedCoupleIds, setEliminatedCoupleIds] =
+    useState<string[]>(startingElimIds);
   const [noElimination, setNoElimination] = useState(
-    initialPredictsNoElimination,
+    elimSlots === 0 ? initialPredictsNoElimination : false,
   );
   const [savedOrder, setSavedOrder] = useState(startingOrder);
-  const [savedEliminatedCoupleId, setSavedEliminatedCoupleId] = useState<
-    string | null
-  >(initialPredictsNoElimination ? null : initialEliminatedCoupleId);
+  const [savedEliminatedCoupleIds, setSavedEliminatedCoupleIds] =
+    useState<string[]>(startingElimIds);
   const [savedNoElimination, setSavedNoElimination] = useState(
-    initialPredictsNoElimination,
+    elimSlots === 0 ? initialPredictsNoElimination : false,
   );
   const [rankPickerIndex, setRankPickerIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [pending, startSaveTransition] = useTransition();
 
+  const dismissToast = useCallback(() => setToast(null), []);
+
   const orderRef = useRef(order);
-  const elimRef = useRef(eliminatedCoupleId);
+  const elimRef = useRef(eliminatedCoupleIds);
   const noElimRef = useRef(noElimination);
   const savedOrderRef = useRef(savedOrder);
-  const savedElimRef = useRef(savedEliminatedCoupleId);
+  const savedElimRef = useRef(savedEliminatedCoupleIds);
   const savedNoElimRef = useRef(savedNoElimination);
   const lockedRef = useRef(locked);
   const saveGenRef = useRef(0);
 
   orderRef.current = order;
-  elimRef.current = eliminatedCoupleId;
+  elimRef.current = eliminatedCoupleIds;
   noElimRef.current = noElimination;
   savedOrderRef.current = savedOrder;
-  savedElimRef.current = savedEliminatedCoupleId;
+  savedElimRef.current = savedEliminatedCoupleIds;
   savedNoElimRef.current = savedNoElimination;
   lockedRef.current = locked;
 
   const dirty =
-    eliminatedCoupleId !== savedEliminatedCoupleId ||
+    !sameIdSet(eliminatedCoupleIds, savedEliminatedCoupleIds) ||
     noElimination !== savedNoElimination ||
     !sameOrder(order, savedOrder);
 
@@ -121,7 +147,7 @@ export function RankPredictionBoard({
     const elim = elimRef.current;
     const noElim = noElimRef.current;
     if (
-      elim === savedElimRef.current &&
+      sameIdSet(elim, savedElimRef.current) &&
       noElim === savedNoElimRef.current &&
       sameOrder(rankOrder, savedOrderRef.current)
     ) {
@@ -134,19 +160,17 @@ export function RankPredictionBoard({
       const result = await savePredictions({
         episodeId,
         rankOrder,
-        eliminatedCoupleId: elim,
+        eliminatedCoupleIds: elim,
         predictsNoElimination: noElim,
       });
       if (gen !== saveGenRef.current) return;
       if (!result.ok) {
         setError(result.error);
-        // Episode may have gone LIVE/PAST since this page rendered — pull
-        // fresh server state so the board locks or switches episode.
         router.refresh();
         return;
       }
       setSavedOrder(rankOrder);
-      setSavedEliminatedCoupleId(elim);
+      setSavedEliminatedCoupleIds(elim);
       setSavedNoElimination(noElim);
       savedOrderRef.current = rankOrder;
       savedElimRef.current = elim;
@@ -160,7 +184,7 @@ export function RankPredictionBoard({
     if (locked || !dirty) return;
     const timer = setTimeout(() => persist(), SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [order, eliminatedCoupleId, noElimination, dirty, locked, episodeId]);
+  }, [order, eliminatedCoupleIds, noElimination, dirty, locked, episodeId]);
 
   useEffect(() => {
     function flush() {
@@ -204,11 +228,44 @@ export function RankPredictionBoard({
     });
   }
 
+  function toggleElimPick(id: string) {
+    if (locked || elimSlots === 0) return;
+
+    if (elimSlots === 1) {
+      setEliminatedCoupleIds([id]);
+      setNoElimination(false);
+      return;
+    }
+
+    setEliminatedCoupleIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((x) => x !== id);
+      }
+      if (prev.length >= elimSlots) {
+        setToast(
+          t("ranks.elimLimitToast", {
+            count: elimSlots,
+          }),
+        );
+        return prev;
+      }
+      return [...prev, id];
+    });
+    setNoElimination(false);
+  }
+
   const statusText = locked
     ? null
     : pending || dirty
       ? t("ranks.saving")
       : message;
+
+  const elimHelp =
+    elimSlots === 0
+      ? t("ranks.elimHelpNone")
+      : multiElim
+        ? t("ranks.elimHelpMulti", { count: elimSlots })
+        : null;
 
   return (
     <section className="mt-8 space-y-4">
@@ -227,6 +284,9 @@ export function RankPredictionBoard({
                 ? t("ranks.helpLocked")
                 : t("ranks.helpOpen", { lockLabel })}
           </p>
+          {elimHelp ? (
+            <p className="mt-1 text-sm font-medium text-foreground">{elimHelp}</p>
+          ) : null}
         </div>
       </div>
 
@@ -247,26 +307,28 @@ export function RankPredictionBoard({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        aria-pressed={noElimination}
-        disabled={locked}
-        onClick={() => {
-          if (noElimination) {
-            setNoElimination(false);
-          } else {
-            setNoElimination(true);
-            setEliminatedCoupleId(null);
-          }
-        }}
-        className={`inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium transition-colors disabled:opacity-60 ${
-          noElimination
-            ? "border-accent bg-accent text-white"
-            : "border-border bg-surface text-muted hover:text-foreground"
-        }`}
-      >
-        {t("ranks.noElimination")}
-      </button>
+      {showNoneToggle ? (
+        <button
+          type="button"
+          aria-pressed={noElimination}
+          disabled={locked}
+          onClick={() => {
+            if (noElimination) {
+              setNoElimination(false);
+            } else {
+              setNoElimination(true);
+              setEliminatedCoupleIds([]);
+            }
+          }}
+          className={`inline-flex h-10 items-center rounded-full border px-4 text-sm font-medium transition-colors disabled:opacity-60 ${
+            noElimination
+              ? "border-accent bg-accent text-white"
+              : "border-border bg-surface text-muted hover:text-foreground"
+          }`}
+        >
+          {t("ranks.noElimination")}
+        </button>
+      ) : null}
 
       <ul
         className={`divide-y divide-border rounded-2xl border border-border bg-surface ${
@@ -276,7 +338,7 @@ export function RankPredictionBoard({
         {order.map((id, index) => {
           const couple = byId.get(id);
           if (!couple) return null;
-          const isElimPick = eliminatedCoupleId === id;
+          const isElimPick = eliminatedCoupleIds.includes(id);
           return (
             <ViewTransition key={id} update="rank-row">
               <li
@@ -319,24 +381,23 @@ export function RankPredictionBoard({
                     & {couple.proName}
                   </p>
                 </div>
-                <label
-                  className={`flex shrink-0 items-center gap-1.5 text-xs font-medium ${
-                    locked ? "opacity-80" : "cursor-pointer"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="elim-pick"
-                    className="size-4 accent-[var(--accent)]"
-                    checked={isElimPick}
-                    disabled={locked}
-                    onChange={() => {
-                      setEliminatedCoupleId(id);
-                      setNoElimination(false);
-                    }}
-                  />
-                  {t("ranks.elim")}
-                </label>
+                {elimSlots > 0 ? (
+                  <label
+                    className={`flex shrink-0 items-center gap-1.5 text-xs font-medium ${
+                      locked ? "opacity-80" : "cursor-pointer"
+                    }`}
+                  >
+                    <input
+                      type={multiElim ? "checkbox" : "radio"}
+                      name={multiElim ? undefined : "elim-pick"}
+                      className="size-4 accent-[var(--accent)]"
+                      checked={isElimPick}
+                      disabled={locked}
+                      onChange={() => toggleElimPick(id)}
+                    />
+                    {t("ranks.elim")}
+                  </label>
+                ) : null}
                 {!locked ? (
                   <div className="hidden shrink-0 gap-1 md:flex">
                     <button
@@ -424,6 +485,7 @@ export function RankPredictionBoard({
         </p>
       ) : null}
       {error ? <p className="text-sm text-accent">{error}</p> : null}
+      <Toast message={toast} onDismiss={dismissToast} />
     </section>
   );
 }
